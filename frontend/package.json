@@ -17,6 +17,7 @@
     "db:seed-dev": "tsx scripts/seed-dev.ts",
     "content:import": "tsx scripts/import-videos.ts",
     "textbook:upload": "tsx scripts/upload-textbook.ts",
+    "textbook:upload-folder": "tsx scripts/upload-textbooks-folder.ts",
     "storage:check": "tsx scripts/storage-check.ts"
   },
   "dependencies": {
