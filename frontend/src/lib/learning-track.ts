@@ -1,11 +1,19 @@
 import type { LocalizedText } from "@/lib/i18n";
 import { levelOf, streak, localDay, type Progress } from "@/lib/progress";
-import {
-  getSubjectsForStandard,
-  getChapterById,
-  isSupportedStandard,
-  type SupportedStandard,
-} from "@/lib/curriculum";
+import { isSupportedStandard, type SupportedStandard } from "@/lib/curriculum";
+
+/**
+ * The subject shape the track needs. Both the full curriculum (server, tests)
+ * and the per-class outline the browser fetches (`useStandardOutline`) fit it.
+ */
+export type TrackSubject = {
+  readonly id: string;
+  readonly name: LocalizedText;
+  readonly code: string;
+  readonly accent: string;
+  readonly icon: string;
+  readonly chapters: readonly { readonly id: string; readonly title: LocalizedText }[];
+};
 
 export type SubjectProgress = {
   readonly id: string;
@@ -48,12 +56,8 @@ export type LearningTrackStats = {
   };
 };
 
-export function getLearningTrackStats(
-  progress: Progress,
-  standardOverride?: number,
-  today = localDay(),
-): LearningTrackStats {
-  // Resolve standard (profile grade -> last accessed standard -> override -> default 6)
+/** Which class the track is about: override → profile grade → last opened chapter's class → 6. */
+export function resolveTrackStandard(progress: Progress, standardOverride?: number): SupportedStandard {
   let standard: SupportedStandard = 6;
   if (standardOverride && isSupportedStandard(standardOverride)) {
     standard = standardOverride;
@@ -65,8 +69,21 @@ export function getLearningTrackStats(
   ) {
     standard = progress.profile.lastAccessed.standard;
   }
+  return standard;
+}
 
-  const subjects = getSubjectsForStandard(standard);
+/**
+ * Progress through one class's chapters. `subjectsFor` supplies that class's
+ * subjects (an empty list while the browser is still fetching them).
+ */
+export function getLearningTrackStats(
+  progress: Progress,
+  subjectsFor: (standard: SupportedStandard) => readonly TrackSubject[],
+  standardOverride?: number,
+  today = localDay(),
+): LearningTrackStats {
+  const standard = resolveTrackStandard(progress, standardOverride);
+  const subjects = subjectsFor(standard);
   const doneSet = new Set(progress.lessonsDone);
 
   const subjectProgressList: SubjectProgress[] = subjects.map((s) => {
@@ -113,11 +130,10 @@ export function getLearningTrackStats(
     progress.profile?.lastAccessed &&
     progress.profile.lastAccessed.standard === standard
   ) {
-    const data = getChapterById(
-      standard,
-      progress.profile.lastAccessed.subjectId,
-      progress.profile.lastAccessed.chapterId,
-    );
+    const { subjectId, chapterId } = progress.profile.lastAccessed;
+    const subject = subjects.find((s) => s.id === subjectId);
+    const chapter = subject?.chapters.find((c) => c.id === chapterId);
+    const data = subject && chapter ? { subject, chapter } : undefined;
     if (data) {
       lastAccessedMeta = {
         standard,

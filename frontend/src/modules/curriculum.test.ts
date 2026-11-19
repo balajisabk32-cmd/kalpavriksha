@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { getChapterById, getStandardCurriculum, getSubjectsForStandard } from "@/lib/curriculum-data";
 import {
   filterSubjectsByGroup,
-  getChapterById,
   getSeniorGroup,
-  getStandardCurriculum,
-  getSubjectsForStandard,
   isSupportedStandard,
   SENIOR_GROUPS,
   SUPPORTED_STANDARDS,

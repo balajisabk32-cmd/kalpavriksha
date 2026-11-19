@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { EMPTY_PROGRESS, completeLesson, localDay, recordQuiz, type Progress } from "./progress";
+import { getSubjectsForStandard } from "./curriculum-data";
 import { getLearningTrackStats } from "./learning-track";
-import { getSubjectsForStandard } from "./curriculum";
 
 const TODAY = localDay();
 
 describe("getLearningTrackStats", () => {
   it("computes stats for default standard 6 when no profile is present", () => {
-    const stats = getLearningTrackStats(EMPTY_PROGRESS);
+    const stats = getLearningTrackStats(EMPTY_PROGRESS, getSubjectsForStandard);
     expect(stats.standard).toBe(6);
     expect(stats.totalChaptersInStandard).toBeGreaterThan(0);
     expect(stats.completedChaptersInStandard).toBe(0);
@@ -28,7 +28,7 @@ describe("getLearningTrackStats", () => {
     let p: Progress = EMPTY_PROGRESS;
     p = completeLesson(p, firstChapter!.id, TODAY);
 
-    const stats = getLearningTrackStats(p, 6);
+    const stats = getLearningTrackStats(p, getSubjectsForStandard, 6);
     expect(stats.completedChaptersInStandard).toBe(1);
     expect(stats.totalLessonsDoneOverall).toBe(1);
 
@@ -52,7 +52,7 @@ describe("getLearningTrackStats", () => {
       },
     };
 
-    const stats = getLearningTrackStats(progressWithProfile);
+    const stats = getLearningTrackStats(progressWithProfile, getSubjectsForStandard);
     expect(stats.standard).toBe(10);
     expect(stats.subjects.some((s) => s.id.includes("c10-math"))).toBe(true);
   });
@@ -76,7 +76,7 @@ describe("getLearningTrackStats", () => {
       p = completeLesson(p, ch.id, TODAY);
     }
 
-    const stats = getLearningTrackStats(p, 1);
+    const stats = getLearningTrackStats(p, getSubjectsForStandard, 1);
     const tamilProgress = stats.subjects.find((s) => s.id === "c1-tamil");
     expect(tamilProgress?.completedChapters).toBe(tamil!.chapters.length);
     expect(tamilProgress?.percentage).toBe(100);
@@ -88,7 +88,7 @@ describe("getLearningTrackStats", () => {
     let p = recordQuiz(EMPTY_PROGRESS, 9, 10, TODAY);
     p = completeLesson(p, "c6-science-ch1", TODAY);
 
-    const stats = getLearningTrackStats(p, 6);
+    const stats = getLearningTrackStats(p, getSubjectsForStandard, 6);
     expect(stats.quizBest).toBe(90);
     expect(stats.streakDays).toBe(1);
     expect(stats.xp).toBeGreaterThan(0);
@@ -111,7 +111,7 @@ describe("getLearningTrackStats", () => {
       },
     };
 
-    const stats = getLearningTrackStats(p);
+    const stats = getLearningTrackStats(p, getSubjectsForStandard);
     expect(stats.lastAccessed).toBeDefined();
     expect(stats.lastAccessed?.subjectId).toBe("c6-math");
     expect(stats.lastAccessed?.chapterId).toBe("c6-math-ch1");

@@ -11,29 +11,26 @@ import {
   Flame,
   Globe,
   GraduationCap,
-  PencilSimple,
   Plant,
   Play,
   Star,
-  Trash,
+  SignOut,
   Trophy,
 } from "@phosphor-icons/react/ssr";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
 import { ChromeWaves } from "@/components/landing/chrome-waves";
 import { LivingTree } from "@/components/landing/living-tree";
 import { CosmicParticleLayer } from "@/components/cosmic-particle-layer";
 import { LangSelect } from "@/components/landing/lang-select";
-import { LearnerSetup, useHydrated } from "@/components/learner-setup";
-import { LiquidGlassSurface } from "@/components/liquid-glass-surface";
+import { useHydrated } from "@/components/learner-setup";
+import { useSessionUser } from "@/components/session-user";
+import { signOutAction } from "@/app/sign-in/actions";
 import { useLocale } from "@/components/locale-provider";
-import { updateProgress, useProgress } from "@/components/progress-store";
-import { BAND_INFO, boardName, SETUP_COPY } from "@/lib/bands";
-import { SENIOR_GROUPS } from "@/lib/curriculum";
+import { useProgress } from "@/components/progress-store";
+import { boardName } from "@/lib/bands";
 import { LOCALE_LABEL, type Locale } from "@/lib/i18n";
-import { bandOf, levelOf, localDay, setProfile, streak, type Profile } from "@/lib/progress";
+import { levelOf, localDay, streak, type Profile } from "@/lib/progress";
 
 /** The seven local days ending today, for the streak dots. */
 function lastSevenDays(today: string, locale: Locale) {
@@ -54,17 +51,13 @@ function joinedYear(studentId: string): number | null {
 
 type ProfileIdentityCardProps = {
   readonly profile: Profile;
-  readonly confirming: boolean;
-  readonly onRemove: () => void;
-  readonly onBlurRemove: () => void;
 };
 
 /** Left Card: Student Avatar, Level, XP, Streak, Badges & Achievements */
-function ProfileIdentityCard({ profile, confirming, onRemove, onBlurRemove }: ProfileIdentityCardProps) {
-  const { locale } = useLocale();
+function ProfileIdentityCard({ profile }: ProfileIdentityCardProps) {
+  const { locale, t } = useLocale();
   const progress = useProgress();
   const { level, into, span } = levelOf(progress.xp);
-  const c = SETUP_COPY[locale];
   const today = localDay();
   const dayStreak = streak(progress.activeDays, today);
   const activeDays = new Set(progress.activeDays);
@@ -254,20 +247,17 @@ function ProfileIdentityCard({ profile, confirming, onRemove, onBlurRemove }: Pr
         </div>
       </div>
 
-      {/* Subtle Remove Device Option */}
+      {/* Sign out (the account and its progress stay on the server) */}
       <div className="mt-1 flex items-center justify-between pt-2 border-t border-purple-900/30 text-[11px] text-purple-400/60">
-        <button
-          type="button"
-          onClick={onRemove}
-          onBlur={onBlurRemove}
-          className={`inline-flex items-center gap-1.5 transition-colors ${
-            confirming ? "text-rose-400 font-semibold" : "hover:text-purple-200"
-          }`}
-        >
-          <Trash size={13} />
-          <span>{confirming ? c.confirmRemove : c.remove}</span>
-        </button>
-        <span className="font-mono text-[10px] text-purple-400/50">Synced to student profile</span>
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 transition-colors hover:text-purple-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet"
+          >
+            <SignOut size={13} />
+            <span>{t.signOut}</span>
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -276,11 +266,10 @@ function ProfileIdentityCard({ profile, confirming, onRemove, onBlurRemove }: Pr
 type DashboardHubCardProps = {
   readonly profile: Profile;
   readonly continueHref: string;
-  readonly onEdit: () => void;
 };
 
 /** Right Card: Greeting, Tree Art, Continue Learning, 4 Metrics, Learning Journey */
-function DashboardHubCard({ profile, continueHref, onEdit }: DashboardHubCardProps) {
+function DashboardHubCard({ profile, continueHref }: DashboardHubCardProps) {
   const { locale } = useLocale();
   const progress = useProgress();
   const today = localDay();
@@ -350,14 +339,6 @@ function DashboardHubCard({ profile, continueHref, onEdit }: DashboardHubCardPro
           <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
         </Link>
 
-        <button
-          type="button"
-          onClick={onEdit}
-          className="inline-flex items-center gap-2 rounded-full border border-purple-400/35 bg-purple-950/40 px-5 py-2.5 text-sm font-medium text-purple-200 transition-all hover:border-purple-300 hover:bg-purple-900/50 hover:text-white"
-        >
-          <PencilSimple size={15} />
-          <span>Edit Profile</span>
-        </button>
       </div>
 
       {/* 3. Four Metric Stats Grid */}
@@ -476,19 +457,15 @@ function DashboardHubCard({ profile, continueHref, onEdit }: DashboardHubCardPro
   );
 }
 
-function SignInScreenContent() {
-  const searchParams = useSearchParams();
-  const redirectTarget = searchParams?.get("redirect") || "/m/learn";
+function MyCardContent() {
   const { t } = useLocale();
   const { profile } = useProgress();
   const hydrated = useHydrated();
-  const [editing, setEditing] = useState(() => searchParams?.get("edit") === "true");
-  const [confirming, setConfirming] = useState(false);
+  const session = useSessionUser();
 
-  const continueHref =
-    profile?.lastAccessed
-      ? `/m/learn?subject=${profile.lastAccessed.subjectId}&chapter=${profile.lastAccessed.chapterId}`
-      : redirectTarget;
+  const continueHref = profile?.lastAccessed
+    ? `/m/learn?subject=${profile.lastAccessed.subjectId}&chapter=${profile.lastAccessed.chapterId}`
+    : "/m/learn";
 
   return (
     <div className="relative isolate min-h-[100dvh] w-full overflow-hidden bg-[#070312]">
@@ -526,52 +503,18 @@ function SignInScreenContent() {
         </header>
 
         <main className="mt-4 sm:mt-6">
-          {!hydrated ? (
-            <div aria-hidden className="mx-auto h-96 w-full max-w-[520px] animate-pulse rounded-3xl border border-purple-900/30 bg-purple-950/30" />
-          ) : !profile || editing ? (
-            <LiquidGlassSurface
-              radius={28}
-              className="border border-purple-500/30 bg-[#0d0720]/90 p-5 shadow-[0_30px_80px_-40px_rgb(0_0_0/0.9)] sm:p-10 max-w-2xl mx-auto"
-            >
-              {profile && (
-                <button
-                  type="button"
-                  onClick={() => setEditing(false)}
-                  className="mb-6 inline-flex h-10 items-center gap-2 rounded-xl border border-purple-700/50 bg-purple-950/40 px-3 text-sm text-purple-200 transition-colors hover:text-white"
-                >
-                  <ArrowLeft size={14} />
-                  <span>Back</span>
-                </button>
-              )}
-              <LearnerSetup
-                existing={profile}
-                redirectTo={redirectTarget}
-                onDone={() => setEditing(false)}
-              />
-            </LiquidGlassSurface>
+          {!hydrated || session.status !== "ready" || !profile ? (
+            <div role="status" aria-label={t.loading} className="mx-auto h-96 w-full max-w-[520px] animate-pulse rounded-3xl border border-purple-900/30 bg-purple-950/30 motion-reduce:animate-none" />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
               {/* Left Card: Student Identity, XP, Level, Streaks & Achievements */}
               <div className="lg:col-span-5 flex flex-col">
-                <ProfileIdentityCard
-                  profile={profile}
-                  confirming={confirming}
-                  onRemove={() => {
-                    if (!confirming) return setConfirming(true);
-                    updateProgress((p) => setProfile(p, null));
-                    setConfirming(false);
-                  }}
-                  onBlurRemove={() => setConfirming(false)}
-                />
+                <ProfileIdentityCard profile={profile} />
               </div>
 
               {/* Right Card: Welcome Hub, Continue Learning, 4 Metrics, Learning Journey */}
               <div className="lg:col-span-7 flex flex-col">
-                <DashboardHubCard
-                  profile={profile}
-                  continueHref={continueHref}
-                  onEdit={() => setEditing(true)}
-                />
+                <DashboardHubCard profile={profile} continueHref={continueHref} />
               </div>
             </div>
           )}
@@ -581,10 +524,7 @@ function SignInScreenContent() {
   );
 }
 
-export function SignInScreen() {
-  return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-3xl border border-purple-900/30 bg-purple-950/30" />}>
-      <SignInScreenContent />
-    </Suspense>
-  );
+/** "My learner card" for the signed-in account (/me). */
+export function MyCardScreen() {
+  return <MyCardContent />;
 }

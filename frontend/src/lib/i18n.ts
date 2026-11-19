@@ -52,6 +52,10 @@ export type Copy = {
   readonly streak: string;
   readonly myCard: string;
   readonly makeCard: string;
+  readonly signOut: string;
+  readonly loading: string;
+  readonly retry: string;
+  readonly sessionError: string;
 };
 
 const LANGS = "தமிழ் · English";
@@ -106,6 +110,10 @@ export const COPY = {
     streak: "day streak",
     myCard: "My learner card",
     makeCard: "Make your card",
+    signOut: "Sign out",
+    loading: "Loading…",
+    retry: "Try again",
+    sessionError: "Couldn't check your sign-in. Check the internet connection.",
   },
   ta: {
     appName: "கல்பவிருக்ஷா",
@@ -155,5 +163,9 @@ export const COPY = {
     streak: "நாள் தொடர்",
     myCard: "என் மாணவர் அட்டை",
     makeCard: "உன் அட்டையை உருவாக்கு",
+    signOut: "வெளியேறு",
+    loading: "ஏற்றப்படுகிறது…",
+    retry: "மீண்டும் முயல்",
+    sessionError: "உள்நுழைவைச் சரிபார்க்க முடியவில்லை. இணைய இணைப்பைச் சரிபாருங்கள்.",
   },
 } as const satisfies Record<Locale, Copy>;

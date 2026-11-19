@@ -26,7 +26,6 @@ import {
   MagnifyingGlass,
   Minus,
   Paperclip,
-  PencilSimple,
   Play,
   Plus,
   Question,
@@ -37,7 +36,6 @@ import {
   Stop,
   Target,
   Trophy,
-  VideoCamera,
   X,
 } from "@phosphor-icons/react/ssr";
 import { Burst } from "@/components/burst";
@@ -45,12 +43,10 @@ import { useLocale } from "@/components/locale-provider";
 import { updateProgress, useProgress } from "@/components/progress-store";
 import { KaraokeLines, useReadAloud } from "@/components/read-aloud";
 import { useTheme } from "@/lib/theme";
-import { ChromeWaves } from "@/components/landing/chrome-waves";
-import { LivingTree } from "@/components/landing/living-tree";
-import { CosmicParticleLayer } from "@/components/cosmic-particle-layer";
 import {
   CurriculumChapter,
-  CurriculumSubject,
+  type ChapterRef,
+  type SubjectMeta,
   PracticeQuestion,
   ResourceItem,
   TN_NEW_SYLLABUS_2026_27_URL,
@@ -58,6 +54,9 @@ import {
 } from "@/lib/curriculum";
 import type { Locale } from "@/lib/i18n";
 import { XP, completeLesson, localDay, recordQuiz, setLastAccessed } from "@/lib/progress";
+import { HintedQuestion } from "./hinted-question";
+import { lifeLinksFor } from "./life-link";
+import { LifeLinkCard } from "./life-link-card";
 
 // ----------------------------------------------------------------------------
 // Types & Helper Models
@@ -82,27 +81,6 @@ interface MicroLesson {
   lines: string[];
 }
 
-interface FillBlankQuestion {
-  id: string;
-  sentence: { en: string; ta: string }; // Uses "____" for the blank
-  correctWord: string;
-  options: string[];
-  explanation: { en: string; ta: string };
-}
-
-interface TrueFalseQuestion {
-  id: string;
-  statement: { en: string; ta: string };
-  isTrue: boolean;
-  explanation: { en: string; ta: string };
-}
-
-interface MatchPair {
-  id: string;
-  left: { en: string; ta: string };
-  right: { en: string; ta: string };
-}
-
 // ----------------------------------------------------------------------------
 // Content Generator: Derives authentic micro-lessons, notes, and interactive
 // questions from existing curriculum data for all 682 chapters across Classes 4-12.
@@ -110,7 +88,7 @@ interface MatchPair {
 
 function deriveChapterContent(
   standard: number,
-  subject: CurriculumSubject,
+  subject: SubjectMeta,
   chapter: CurriculumChapter,
   locale: Locale,
 ) {
@@ -238,40 +216,41 @@ function deriveChapterContent(
     ],
   };
 
-  // Micro-lesson 3: Real-World Applications & Practical Review
+  // Micro-lesson 3: Real life & review. The chapter's Life Link analogy cards
+  // (life-link.ts) are shown under this lesson when they exist.
   const lesson3: MicroLesson = {
     id: `${chapter.id}-l3`,
     title: {
-      en: `3. Real-World Applications & Exam Takeaways`,
-      ta: `3. நடைமுறைப் பயன்பாடுகள் & தேர்வு வழிகாட்டல்`,
+      en: `3. Real Life & Review`,
+      ta: `3. அன்றாட வாழ்வும் மீள்பார்வையும்`,
     },
     durationMinutes: Math.max(3, Math.round(chapter.estimatedMinutes * 0.25)),
     objective: {
-      en: `Connect ${cleanTitleEn} to real-world applications in Tamil Nadu and master key exam questions.`,
-      ta: `அன்றாட வாழ்வில் இதன் பயன்பாடுகளைப் புரிந்து கொண்டு, தேர்வு வினாக்களுக்குத் தயாராகுதல்.`,
+      en: `Connect ${cleanTitleEn} to everyday life and check what you remember.`,
+      ta: `${cleanTitleTa} பாடத்தை அன்றாட வாழ்வோடு இணைத்து, நினைவில் உள்ளதைச் சரிபார்த்தல்.`,
     },
     intro: {
-      en: `Knowledge is most powerful when connected to everyday life. Here is how ${cleanTitleEn} appears in modern science, society, and industry.`,
-      ta: `கற்ற கல்வியை அன்றாட வாழ்வோடும் தேர்வுத் திறனோடும் இணைத்துப் பார்க்கும் முக்கியப் பகுதி இதுவாகும்.`,
+      en: `Ideas stick when you can see them around you. Read the real-life comparisons for this chapter, then try the practice questions.`,
+      ta: `நம்மைச் சுற்றி காணும்போதுதான் கருத்துகள் மனதில் நிற்கின்றன. இப்பாடத்துக்கான அன்றாட வாழ்க்கை ஒப்புமைகளைப் படித்து, பிறகு பயிற்சி வினாக்களை முயலுங்கள்.`,
     },
     keyPoints: [
       {
-        en: "Practical Use: Widely applied across agriculture, technology, governance, and environmental stewardship in Tamil Nadu.",
-        ta: "நடைமுறைப் பயன்: அன்றாட வாழ்விலும், தொழில்நுட்பம் மற்றும் சமூகச் செயல்பாடுகளிலும் இதன் பங்கு.",
+        en: "Read each real-life comparison and its 'where it breaks' note.",
+        ta: "ஒவ்வொரு அன்றாட வாழ்க்கை ஒப்புமையையும் அது 'எங்கே பொருந்தாது' என்ற குறிப்பையும் படியுங்கள்.",
       },
       {
-        en: "Exam Strategy: High-probability question types include 2-mark definitions, 5-mark structured answers, and objective MCQs.",
-        ta: "தேர்வு உத்தி: 2-மதிப்பெண் வரைமுறைகள் மற்றும் 5-மதிப்பெண் விரிவான விடைகளுக்கு இப்பாடம் மிகவும் முக்கியமானது.",
+        en: "Explain the idea to a friend or someone at home in your own words.",
+        ta: "இந்தக் கருத்தை உங்கள் சொந்த வார்த்தைகளில் நண்பருக்கோ வீட்டில் உள்ளவருக்கோ விளக்குங்கள்.",
       },
       {
-        en: "Summary Mindmap: Review the notes tab and test your readiness in the practice tab.",
-        ta: "மறுபார்வை: குறிப்புகள் பகுதியை மீள்பார்வை செய்து பயிற்சி வினாக்களுக்கு விடையளியுங்கள்.",
+        en: "Try the Practice tab. Questions you get wrong come back in your Daily 5 review.",
+        ta: "பயிற்சிப் பகுதியை முயலுங்கள். தவறாகப் பதிலளித்த வினாக்கள் உங்கள் தினசரி 5 மீள்பார்வையில் மீண்டும் வரும்.",
       },
     ],
     lines: [
-      `Section 3: Applications & Review of ${cleanTitleEn}.`,
-      "Review the concepts and proceed to the practice quiz to test your mastery.",
-      "Click Mark Chapter Complete once you finish all exercises.",
+      `Section 3: Real life and review of ${cleanTitleEn}.`,
+      "Read the real-life comparisons, then try the practice questions.",
+      "Questions you get wrong will come back in your Daily 5 review.",
     ],
   };
 
@@ -349,83 +328,6 @@ function deriveChapterContent(
           },
         ];
 
-  // Practice: Fill in the Blank questions
-  const fillBlanks: FillBlankQuestion[] = [
-    {
-      id: `${chapter.id}-fb-1`,
-      sentence: {
-        en: `In Tamil Nadu Samacheer Kalvi Class ${standard}, ${cleanTitleEn.split("(")[0]?.trim()} is taught under the subject of ____.`,
-        ta: `தமிழ்நாடு சமச்சீர் கல்வி வகுப்பு ${standard}ல், ${cleanTitleTa.split("(")[0]?.trim()} பாடம் ____ பாடப்பிரிவின் கீழ் வருகிறது.`,
-      },
-      correctWord: subject.name.en,
-      options: [subject.name.en, "General Knowledge", "Physical Education", "Astronomy"],
-      explanation: {
-        en: `This chapter is part of the Class ${standard} ${subject.name.en} curriculum.`,
-        ta: `இப்பாடம் வகுப்பு ${standard} ${subject.name.ta} பாடத்திட்டத்தில் உள்ளது.`,
-      },
-    },
-    {
-      id: `${chapter.id}-fb-2`,
-      sentence: {
-        en: `The primary medium of learning and examination for this chapter is ____.`,
-        ta: `இப்பாடத்தின் முதன்மைப் பயிற்று மொழி மற்றும் தேர்வு முறை ____ ஆகும்.`,
-      },
-      correctWord: "Samacheer Kalvi",
-      options: ["Samacheer Kalvi", "CBSE International", "ICSE Global", "Cambridge IGCSE"],
-      explanation: {
-        en: "The curriculum strictly adheres to the official Tamil Nadu State Board Samacheer Kalvi syllabus.",
-        ta: "இப்பாடத்திட்டம் தமிழ்நாடு அரசு சமச்சீர் கல்வி முறைக்கு உட்பட்டது.",
-      },
-    },
-  ];
-
-  // Practice: True / False questions
-  const trueFalse: TrueFalseQuestion[] = [
-    {
-      id: `${chapter.id}-tf-1`,
-      statement: {
-        en: `${cleanTitleEn} is an official prescribed chapter for Class ${standard} in Tamil Nadu schools.`,
-        ta: `${cleanTitleTa} என்பது தமிழ்நாடு பள்ளிகளில் வகுப்பு ${standard}க்கான அதிகாரப்பூர்வ பாடமாகும்.`,
-      },
-      isTrue: true,
-      explanation: {
-        en: "Correct! This chapter is officially prescribed in the state board syllabus.",
-        ta: "சரி! இப்பாடம் சமச்சீர் கல்வி பாடத்திட்டத்தில் அதிகாரப்பூர்வமாக இடம்பெற்றுள்ளது.",
-      },
-    },
-    {
-      id: `${chapter.id}-tf-2`,
-      statement: {
-        en: "This topic has no real-world application in modern everyday life or technology.",
-        ta: "இக்கருத்து நவீன வாழ்விலோ தொழில்நுட்பத்திலோ எவ்விதப் பயன்பாட்டையும் கொண்டிருக்கவில்லை.",
-      },
-      isTrue: false,
-      explanation: {
-        en: "False. The concepts covered in this chapter form essential building blocks for higher studies and practical applications.",
-        ta: "தவறு. இப்பாடத்தின் கருத்துக்கள் அன்றாட வாழ்விலும் உயர்கல்வியிலும் மிக முக்கியப் பங்கு வகிக்கின்றன.",
-      },
-    },
-  ];
-
-  // Practice: Match the following pairs
-  const matchPairs: MatchPair[] = [
-    {
-      id: `${chapter.id}-mp-1`,
-      left: { en: "1. Standard Level", ta: "1. வகுப்பு நிலை" },
-      right: { en: `Class ${standard} Samacheer`, ta: `வகுப்பு ${standard} சமச்சீர்` },
-    },
-    {
-      id: `${chapter.id}-mp-2`,
-      left: { en: "2. Subject Field", ta: "2. பாடப்பிரிவு" },
-      right: { en: subject.name.en, ta: subject.name.ta },
-    },
-    {
-      id: `${chapter.id}-mp-3`,
-      left: { en: "3. Chapter Scope", ta: "3. பாட நோக்கம்" },
-      right: { en: `Unit ${chapter.chapterNumber} Foundations`, ta: `அலகு ${chapter.chapterNumber} அடிப்படைகள்` },
-    },
-  ];
-
   // Resources
   const resourcesList = [
     {
@@ -437,11 +339,10 @@ function deriveChapterContent(
       type: "pdf" as const,
       url: TN_TEXTBOOK_PORTAL_URL,
       description: {
-        en: "Official State Board textbook direct from the Department of School Education, Government of Tamil Nadu.",
-        ta: "தமிழ்நாடு அரசு பள்ளிக் கல்வித்துறையின் அதிகாரப்பூர்வ பாடநூல்.",
+        en: "Tamil Nadu State Board textbooks for this class. Opens an outside website.",
+        ta: "இவ்வகுப்புக்கான தமிழ்நாடு மாநிலப் பாடத்திட்டப் பாடநூல்கள். வெளி இணையதளத்தில் திறக்கும்.",
       },
-      fileSize: "12.4 MB",
-      verified: true,
+      fileSize: "Textbook link",
       available: true,
     },
     {
@@ -453,43 +354,25 @@ function deriveChapterContent(
       type: "link" as const,
       url: TN_NEW_SYLLABUS_2026_27_URL,
       description: {
-        en: "Updated curriculum edition with latest revised questions and digital QR codes.",
-        ta: "சமீபத்திய திருத்தப்பட்ட வினாக்கள் மற்றும் க்யூஆர் குறியீடுகளுடன் கூடிய பாடநூல்.",
+        en: "Textbooks for the new 2026–27 syllabus. Opens an outside website.",
+        ta: "2026–27 புதிய பாடத்திட்டப் பாடநூல்கள். வெளி இணையதளத்தில் திறக்கும்.",
       },
       fileSize: "Portal Link",
-      verified: true,
-      available: true,
-    },
-    {
-      id: `${chapter.id}-res-video`,
-      title: {
-        en: `${cleanTitleEn.split("(")[0]?.trim()} – Interactive Video Explanation`,
-        ta: `${cleanTitleTa.split("(")[0]?.trim()} – காணொளி விளக்கம்`,
-      },
-      type: "video" as const,
-      url: "#video-lesson",
-      description: {
-        en: "Step-by-step visual walkthrough and animation explaining core chapter concepts.",
-        ta: "முக்கியக் கருத்துக்களை எளிமையாக விளக்கும் அனிமேஷன் மற்றும் விளக்கக் காணொளி.",
-      },
-      duration: "14:20 mins",
-      verified: true,
       available: true,
     },
     {
       id: `${chapter.id}-res-audio`,
       title: {
-        en: `Audio Summary & Vocabulary Podcast`,
-        ta: `ஒலி வடிவிலான பாடச் சுருக்கம் & சொல்வளம்`,
+        en: `Listen to this lesson`,
+        ta: `இந்தப் பாடத்தைக் கேளுங்கள்`,
       },
       type: "audio" as const,
-      url: "#audio-summary",
+      url: "#read-aloud",
       description: {
-        en: "Bilingual audio overview designed for revision while listening.",
-        ta: "பயணத்தின் போதும் கேட்கக்கூடிய வகையிலான இருமொழிப் பாடச் சுருக்கம்.",
+        en: "Your device reads the current lesson aloud, highlighting each word. Video lessons are coming.",
+        ta: "உங்கள் சாதனம் தற்போதைய பாடத்தை ஒவ்வொரு சொல்லையும் ஒளிரச் செய்து வாசிக்கும். காணொளிப் பாடங்கள் விரைவில் வரும்.",
       },
-      duration: "6:45 mins",
-      verified: true,
+      duration: "Read-aloud",
       available: true,
     },
   ];
@@ -502,9 +385,6 @@ function deriveChapterContent(
     notesSummary,
     definitions,
     mcqs,
-    fillBlanks,
-    trueFalse,
-    matchPairs,
     resourcesList,
   };
 }
@@ -587,9 +467,9 @@ export function InteractiveChapterClassroom({
   onSelectChapter,
 }: {
   standard: number;
-  subject: CurriculumSubject | null;
+  subject: SubjectMeta | null;
   chapter: CurriculumChapter | null;
-  allChapters: { subject: CurriculumSubject; chapter: CurriculumChapter }[];
+  allChapters: readonly ChapterRef[];
   onClose: () => void;
   onSelectChapter: (chapterId: string) => void;
 }) {
@@ -614,12 +494,11 @@ export function InteractiveChapterClassroom({
   const [speechRate, setSpeechRate] = useState<number>(1.0);
 
   // Practice Quiz States
-  const [mcqAnswers, setMcqAnswers] = useState<Record<string, number>>({});
-  const [showMcqExplanations, setShowMcqExplanations] = useState<Record<string, boolean>>({});
-  const [fbAnswers, setFbAnswers] = useState<Record<string, string>>({});
-  const [tfAnswers, setTfAnswers] = useState<Record<string, boolean>>({});
-  const [matchSelections, setMatchSelections] = useState<Record<string, string>>({});
+  // First-try result per practice question (true = right first time).
+  const [mcqAnswers, setMcqAnswers] = useState<Record<string, boolean>>({});
   const [quizScoreSaved, setQuizScoreSaved] = useState(false);
+  // Bumped by "Retry All" to remount every question fresh.
+  const [practiceRound, setPracticeRound] = useState(0);
 
   // Bookmarks State
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -629,14 +508,25 @@ export function InteractiveChapterClassroom({
   const [celebrateModalOpen, setCelebrateModalOpen] = useState(false);
   const [celebrateCount, setCelebrateCount] = useState(0);
 
-  // Video Player Modal State
-  const [activeVideoModal, setActiveVideoModal] = useState<string | null>(null);
-
   // Content Data
   const content = useMemo(() => {
     if (!subject || !chapter) return null;
     return deriveChapterContent(standard, subject, chapter, locale);
   }, [standard, subject, chapter, locale]);
+
+  // Real-life analogy cards written for this chapter (often none yet).
+  const lifeLinks = useMemo(() => (chapter ? lifeLinksFor(chapter.id) : []), [chapter]);
+
+  // While open, tell the module shell to hide the page underneath (see globals.css).
+  const isOpen = Boolean(chapter);
+  useEffect(() => {
+    if (!isOpen) return;
+    const root = document.documentElement;
+    root.dataset.overlay = "open";
+    return () => {
+      delete root.dataset.overlay;
+    };
+  }, [isOpen]);
 
   // Load saved progress & bookmarks from localStorage on chapter mount
   useEffect(() => {
@@ -671,10 +561,6 @@ export function InteractiveChapterClassroom({
 
     // Reset quiz answers for fresh chapter view
     setMcqAnswers({});
-    setShowMcqExplanations({});
-    setFbAnswers({});
-    setTfAnswers({});
-    setMatchSelections({});
     setQuizScoreSaved(false);
     setActiveTab("learn");
   }, [chapter?.id]);
@@ -712,14 +598,11 @@ export function InteractiveChapterClassroom({
       if (completedLessons[l.id]) completedCount += 1;
     });
 
-    const isQuizDone =
-      Object.keys(mcqAnswers).length > 0 ||
-      Object.keys(fbAnswers).length > 0 ||
-      Object.keys(tfAnswers).length > 0;
+    const isQuizDone = Object.keys(mcqAnswers).length > 0;
     if (isQuizDone) completedCount += 1;
 
     return Math.min(100, Math.round((completedCount / totalItems) * 100));
-  }, [content, completedLessons, mcqAnswers, fbAnswers, tfAnswers]);
+  }, [content, completedLessons, mcqAnswers]);
 
   // Current Lesson Completion
   const currentLesson = content?.lessons[activeLessonIdx];
@@ -777,15 +660,12 @@ export function InteractiveChapterClassroom({
     setCelebrateModalOpen(true);
   };
 
-  // MCQ Selection handler
-  const handleMcqSelect = (qId: string, optIndex: number, correctIndex: number) => {
-    setMcqAnswers((prev) => ({ ...prev, [qId]: optIndex }));
-    setShowMcqExplanations((prev) => ({ ...prev, [qId]: true }));
-
-    // Record quiz attempt in student profile once first answer is submitted
+  // First try at a practice question: spaced review is recorded inside
+  // HintedQuestion; the chapter quiz score is saved once per visit, as before.
+  const handleFirstAnswer = (qId: string, isCorrect: boolean) => {
+    setMcqAnswers((prev) => ({ ...prev, [qId]: isCorrect }));
     if (!quizScoreSaved) {
       setQuizScoreSaved(true);
-      const isCorrect = optIndex === correctIndex;
       updateProgress((p) => recordQuiz(p, isCorrect ? 1 : 0, 1, localDay()));
     }
   };
@@ -837,59 +717,22 @@ export function InteractiveChapterClassroom({
       role="dialog"
       aria-modal="true"
       aria-label={chapter.title[locale] || chapter.title.en}
-      className={`fixed inset-0 z-50 flex flex-col overflow-y-auto selection:bg-purple-600 selection:text-white transition-colors duration-300 ${
-        isLight ? "bg-[#f8f6fc]/85 text-slate-900" : "bg-[#080312] text-slate-100"
+      className={`visible fixed inset-0 z-50 flex flex-col overflow-y-auto overscroll-contain selection:bg-purple-600 selection:text-white ${
+        isLight ? "text-slate-900" : "text-slate-100"
       }`}
     >
-      {/* ===================================================================== */}
-      {/* LANDING PAGE SIGNATURE BACKGROUND (Chrome Waves + Living Tree + Petals)*/}
-      {/* ===================================================================== */}
+      {/* Background: the module shell's animated backdrop (waves, tree, petals)
+          shows through this dialog — while it is open the shell hides its page
+          content (html[data-overlay]) instead of the dialog painting a second
+          copy of every animated layer. Only cheap static tints live here. */}
       <div
         aria-hidden
-        className={`pointer-events-none fixed inset-0 z-0 overflow-hidden ${
-          isLight ? "bg-[#f7f1fd]/90" : "bg-[#080312]"
+        className={`pointer-events-none fixed inset-0 z-0 ${
+          isLight
+            ? "bg-[#f8f6fc]/55 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.1),transparent_65%)]"
+            : "bg-[#080312]/45 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.22),transparent_65%)]"
         }`}
-      >
-        {/* 1. Underlying Signature Chrome Waves (chromatic nebula + spiral orbit rings directly from Landing) */}
-        <ChromeWaves />
-
-        {/* 2. Harmonious Plum & Cosmic Purple Mixup - subtle accent auras allowing rings to shine */}
-        <div
-          className={`absolute inset-0 ${
-            isLight
-              ? "bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.1),transparent_65%)]"
-              : "bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.24),transparent_65%)]"
-          }`}
-        />
-        <div
-          className={`absolute inset-0 ${
-            isLight
-              ? "bg-[radial-gradient(ellipse_at_75%_35%,rgba(236,72,153,0.08),transparent_60%)]"
-              : "bg-[radial-gradient(ellipse_at_75%_35%,rgba(236,72,153,0.18),transparent_60%)]"
-          }`}
-        />
-        <div
-          className={`absolute inset-0 ${
-            isLight
-              ? "bg-[radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.08),transparent_60%)]"
-              : "bg-[radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.16),transparent_60%)]"
-          }`}
-        />
-
-        {/* 3. Blooming Wishing Tree with drifting petals hugging the left side */}
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 hidden sm:block h-full w-[46vw] min-w-[280px] max-w-[600px] overflow-hidden opacity-85 transform-gpu"
-          style={{
-            maskImage: "linear-gradient(to right, #000 70%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to right, #000 70%, transparent 100%)",
-          }}
-        >
-          <LivingTree />
-        </div>
-      </div>
-
-      {/* 4. Cosmic particle layer with drifting petals + interactive bursts */}
-      <CosmicParticleLayer moduleSlug="learn" className="z-[1]" />
+      />
 
       {/* --------------------------------------------------------------------- */}
       {/* TOP CLASSROOM HEADER BAR                                              */}
@@ -1427,6 +1270,25 @@ export function InteractiveChapterClassroom({
                       </ul>
                     </div>
 
+                    {/* Life Link: real-life comparisons (Lesson 3) */}
+                    {activeLessonIdx === 2 && (
+                      <div className="my-6 flex flex-col gap-4">
+                        {lifeLinks.length > 0 ? (
+                          lifeLinks.map((c) => <LifeLinkCard key={c.id} concept={c} />)
+                        ) : (
+                          <p
+                            className={`rounded-2xl border border-dashed p-4 text-xs sm:text-sm ${
+                              isLight ? "border-amber-300 bg-amber-50/60 text-amber-950" : "border-amber-500/30 bg-amber-950/20 text-amber-100"
+                            }`}
+                          >
+                            {locale === "ta"
+                              ? "🌱 இப்பாடத்துக்கான அன்றாட வாழ்க்கை ஒப்புமைகளை ஆசிரியர்கள் எழுதிக்கொண்டிருக்கிறார்கள். அதுவரை, இந்தக் கருத்தை வீட்டிலோ வெளியிலோ எங்கே பார்க்கிறீர்கள் என்று யோசியுங்கள்."
+                              : "🌱 Teachers are still writing real-life comparisons for this chapter. Until then, think about where you see this idea at home or outside."}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Concept Diagram Box (Lesson 1) */}
                     {currentLesson.diagramItems && (
                       <div
@@ -1686,7 +1548,7 @@ export function InteractiveChapterClassroom({
             )}
 
             {/* --------------------------------------------------------------- */}
-            {/* TAB 3: PRACTICE (MCQ, Fill Blanks, True/False, Match, Score)    */}
+            {/* TAB 3: PRACTICE (hinted MCQs from the curriculum, score)       */}
             {/* --------------------------------------------------------------- */}
             {activeTab === "practice" && (
               <div className="flex flex-col gap-6">
@@ -1707,7 +1569,7 @@ export function InteractiveChapterClassroom({
                         Interactive Knowledge Check
                       </h3>
                       <p className={`font-mono text-xs ${isLight ? "text-purple-700 font-medium" : "text-purple-300/80"}`}>
-                        {Object.keys(mcqAnswers).length + Object.keys(fbAnswers).length + Object.keys(tfAnswers).length} questions answered
+                        {Object.keys(mcqAnswers).length} of {content.mcqs.length} answered · {Object.values(mcqAnswers).filter(Boolean).length} right first time
                       </p>
                     </div>
                   </div>
@@ -1717,11 +1579,8 @@ export function InteractiveChapterClassroom({
                       type="button"
                       onClick={() => {
                         setMcqAnswers({});
-                        setShowMcqExplanations({});
-                        setFbAnswers({});
-                        setTfAnswers({});
-                        setMatchSelections({});
                         setQuizScoreSaved(false);
+                        setPracticeRound((r) => r + 1);
                       }}
                       className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 font-mono text-xs transition-colors ${
                         isLight
@@ -1759,307 +1618,20 @@ export function InteractiveChapterClassroom({
                           : "bg-purple-900/60 border border-purple-700/50 text-purple-200"
                       }`}
                     >
-                      {content.mcqs.length} Questions
+                      {content.mcqs.length} {content.mcqs.length === 1 ? "Question" : "Questions"}
                     </span>
                   </div>
 
                   <div className="flex flex-col gap-5">
-                    {content.mcqs.map((q, qIdx) => {
-                      const selected = mcqAnswers[q.id];
-                      const isAnswered = selected !== undefined;
-                      const isCorrect = selected === q.answerIndex;
-
-                      return (
-                        <div
-                          key={q.id}
-                          className={`rounded-2xl border p-4 sm:p-5 ${
-                            isLight
-                              ? "border-purple-200 bg-purple-50/50"
-                              : "border-purple-900/50 bg-purple-950/40"
-                          }`}
-                        >
-                          <p className={`font-display text-sm sm:text-base font-semibold mb-3 ${isLight ? "text-purple-950" : "text-white"}`}>
-                            <span className={`font-mono text-xs mr-2 ${isLight ? "text-pink-600 font-bold" : "text-pink-400"}`}>
-                              Q{qIdx + 1}.
-                            </span>
-                            {q.question[locale] || q.question.en}
-                          </p>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            {q.options.map((opt, optIdx) => {
-                              const isThisSelected = selected === optIdx;
-                              let btnClass = isLight
-                                ? "border-purple-200 bg-white text-purple-950 hover:bg-purple-100/80 hover:border-purple-400 shadow-sm"
-                                : "border-purple-900/50 bg-purple-950/30 text-purple-200 hover:border-purple-600 hover:bg-purple-900/40";
-
-                              if (isAnswered) {
-                                if (optIdx === q.answerIndex) {
-                                  btnClass = isLight
-                                    ? "border-emerald-500 bg-emerald-50 text-emerald-950 font-bold ring-2 ring-emerald-500/30"
-                                    : "border-emerald-400 bg-emerald-950/60 text-emerald-200 font-bold shadow-[0_0_12px_rgba(52,211,153,0.3)]";
-                                } else if (isThisSelected) {
-                                  btnClass = isLight
-                                    ? "border-rose-400 bg-rose-50 text-rose-950 font-bold"
-                                    : "border-red-500 bg-red-950/60 text-red-200 font-bold";
-                                }
-                              }
-
-                              return (
-                                <button
-                                  key={optIdx}
-                                  type="button"
-                                  onClick={() => handleMcqSelect(q.id, optIdx, q.answerIndex)}
-                                  className={`flex items-center gap-2.5 rounded-xl border p-3 text-left text-xs sm:text-sm transition-all ${btnClass}`}
-                                >
-                                  <span
-                                    className={`grid size-6 place-items-center rounded-lg font-mono text-xs shrink-0 font-bold ${
-                                      isLight
-                                        ? "bg-purple-100 text-purple-900"
-                                        : "bg-purple-900/60 text-purple-200"
-                                    }`}
-                                  >
-                                    {String.fromCharCode(65 + optIdx)}
-                                  </span>
-                                  <span className="leading-snug">{opt[locale] || opt.en}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {showMcqExplanations[q.id] && (
-                            <div
-                              className={`mt-4 rounded-xl border p-3 text-xs leading-relaxed ${
-                                isCorrect
-                                  ? isLight
-                                    ? "border-emerald-300 bg-emerald-50 text-emerald-950"
-                                    : "border-emerald-500/40 bg-emerald-950/40 text-emerald-200"
-                                  : isLight
-                                  ? "border-amber-300 bg-amber-50 text-amber-950"
-                                  : "border-amber-500/40 bg-amber-950/40 text-amber-200"
-                              }`}
-                            >
-                              <span className="font-bold block mb-0.5">
-                                {isCorrect ? "✓ Correct Answer!" : "Explanation & Reasoning:"}
-                              </span>
-                              <p>{q.explanation[locale] || q.explanation.en}</p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 2. Fill in the Blanks */}
-                <div
-                  className={`rounded-3xl border p-6 sm:p-7 backdrop-blur-xl flex flex-col gap-4 ${
-                    isLight
-                      ? "border-purple-200 bg-white/95 text-purple-950 shadow-lg"
-                      : "border-purple-800/40 bg-[#160a2b]/80 shadow-xl"
-                  }`}
-                >
-                  <h4
-                    className={`font-display text-base font-bold flex items-center gap-2 border-b pb-3 ${
-                      isLight ? "border-purple-200 text-purple-950" : "border-purple-900/40 text-white"
-                    }`}
-                  >
-                    <PencilSimple size={18} className="text-pink-500" weight="fill" />
-                    <span>Part B: Fill in the Blanks</span>
-                  </h4>
-
-                  <div className="grid gap-4">
-                    {content.fillBlanks.map((fb, fbIdx) => {
-                      const userPick = fbAnswers[fb.id];
-                      const isCorrect = userPick === fb.correctWord;
-
-                      return (
-                        <div
-                          key={fb.id}
-                          className={`rounded-2xl border p-4 ${
-                            isLight
-                              ? "border-purple-200 bg-purple-50/50"
-                              : "border-purple-900/50 bg-purple-950/40"
-                          }`}
-                        >
-                          <p className={`text-xs sm:text-sm font-medium mb-3 ${isLight ? "text-purple-950" : "text-purple-100"}`}>
-                            <span className={`font-mono mr-2 ${isLight ? "text-pink-600 font-bold" : "text-pink-400"}`}>
-                              {fbIdx + 1}.
-                            </span>
-                            {(fb.sentence[locale] || fb.sentence.en).replace("____", userPick ? `[${userPick}]` : "______")}
-                          </p>
-
-                          <div className="flex flex-wrap gap-2">
-                            {fb.options.map((opt, oIdx) => {
-                              const picked = userPick === opt;
-                              let pillStyle = isLight
-                                ? "border-purple-300 bg-white text-purple-900 hover:border-purple-500 hover:bg-purple-100 font-bold"
-                                : "border-purple-800/50 bg-purple-950/30 text-purple-300 hover:border-purple-600 hover:text-white";
-
-                              if (picked) {
-                                if (isCorrect) {
-                                  pillStyle = isLight
-                                    ? "border-emerald-500 bg-emerald-100 text-emerald-950 font-bold"
-                                    : "border-emerald-400 bg-emerald-950/60 text-emerald-300 font-bold";
-                                } else {
-                                  pillStyle = isLight
-                                    ? "border-rose-400 bg-rose-100 text-rose-950 font-bold"
-                                    : "border-red-500 bg-red-950/60 text-red-200 font-bold";
-                                }
-                              }
-
-                              return (
-                                <button
-                                  key={oIdx}
-                                  type="button"
-                                  onClick={() => setFbAnswers((p) => ({ ...p, [fb.id]: opt }))}
-                                  className={`rounded-xl border px-3 py-1.5 font-mono text-xs transition-all ${pillStyle}`}
-                                >
-                                  {opt}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {userPick && (
-                            <p className={`mt-3 text-xs ${isLight ? "text-slate-800 font-medium" : "text-purple-300/80"}`}>
-                              <span className={`font-bold ${isLight ? "text-purple-950" : "text-white"}`}>Note: </span>
-                              {fb.explanation[locale] || fb.explanation.en}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 3. True / False Questions */}
-                <div
-                  className={`rounded-3xl border p-6 sm:p-7 backdrop-blur-xl flex flex-col gap-4 ${
-                    isLight
-                      ? "border-purple-200 bg-white/95 text-purple-950 shadow-lg"
-                      : "border-purple-800/40 bg-[#160a2b]/80 shadow-xl"
-                  }`}
-                >
-                  <h4
-                    className={`font-display text-base font-bold flex items-center gap-2 border-b pb-3 ${
-                      isLight ? "border-purple-200 text-purple-950" : "border-purple-900/40 text-white"
-                    }`}
-                  >
-                    <CheckCircle size={18} className="text-emerald-500" weight="fill" />
-                    <span>Part C: True or False</span>
-                  </h4>
-
-                  <div className="grid gap-4">
-                    {content.trueFalse.map((tf, tfIdx) => {
-                      const userPick = tfAnswers[tf.id];
-                      const answered = userPick !== undefined;
-
-                      return (
-                        <div
-                          key={tf.id}
-                          className={`rounded-2xl border p-4 ${
-                            isLight
-                              ? "border-purple-200 bg-purple-50/50"
-                              : "border-purple-900/50 bg-purple-950/40"
-                          }`}
-                        >
-                          <p className={`text-xs sm:text-sm font-medium mb-3 ${isLight ? "text-purple-950" : "text-white"}`}>
-                            <span className={`font-mono mr-2 ${isLight ? "text-pink-600 font-bold" : "text-pink-400"}`}>
-                              {tfIdx + 1}.
-                            </span>
-                            {tf.statement[locale] || tf.statement.en}
-                          </p>
-
-                          <div className="flex items-center gap-2">
-                            {[
-                              { label: "True", val: true },
-                              { label: "False", val: false },
-                            ].map((btn) => {
-                              const isThisChosen = userPick === btn.val;
-                              let btnClass = isLight
-                                ? "border-purple-300 bg-white text-purple-900 hover:border-purple-500 hover:bg-purple-100 font-bold shadow-sm"
-                                : "border-purple-800/50 bg-purple-950/30 text-purple-200 hover:border-purple-600";
-
-                              if (answered) {
-                                if (btn.val === tf.isTrue) {
-                                  btnClass = isLight
-                                    ? "border-emerald-500 bg-emerald-100 text-emerald-950 font-bold"
-                                    : "border-emerald-400 bg-emerald-950/60 text-emerald-300 font-bold";
-                                } else if (isThisChosen) {
-                                  btnClass = isLight
-                                    ? "border-rose-400 bg-rose-100 text-rose-950 font-bold"
-                                    : "border-red-500 bg-red-950/60 text-red-200";
-                                }
-                              }
-
-                              return (
-                                <button
-                                  key={btn.label}
-                                  type="button"
-                                  onClick={() => setTfAnswers((p) => ({ ...p, [tf.id]: btn.val }))}
-                                  className={`rounded-xl border px-4 py-2 font-display text-xs font-bold transition-all ${btnClass}`}
-                                >
-                                  {btn.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {answered && (
-                            <p className={`mt-3 text-xs ${isLight ? "text-slate-800 font-medium" : "text-purple-300/80"}`}>
-                              <span className={`font-bold ${isLight ? "text-purple-950" : "text-white"}`}>Explanation: </span>
-                              {tf.explanation[locale] || tf.explanation.en}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 4. Match the Following */}
-                <div
-                  className={`rounded-3xl border p-6 sm:p-7 backdrop-blur-xl flex flex-col gap-4 ${
-                    isLight
-                      ? "border-purple-200 bg-white/95 text-purple-950 shadow-lg"
-                      : "border-purple-800/40 bg-[#160a2b]/80 shadow-xl"
-                  }`}
-                >
-                  <h4
-                    className={`font-display text-base font-bold flex items-center gap-2 border-b pb-3 ${
-                      isLight ? "border-purple-200 text-purple-950" : "border-purple-900/40 text-white"
-                    }`}
-                  >
-                    <ListChecks size={18} className={isLight ? "text-indigo-600" : "text-indigo-400"} weight="fill" />
-                    <span>Part D: Concept Match</span>
-                  </h4>
-
-                  <div className="grid gap-2.5">
-                    {content.matchPairs.map((pair) => (
-                      <div
-                        key={pair.id}
-                        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border p-3.5 ${
-                          isLight
-                            ? "border-purple-200 bg-purple-50/60 text-purple-950"
-                            : "border-purple-900/40 bg-purple-950/30 text-white"
-                        }`}
-                      >
-                        <span className={`font-display text-xs sm:text-sm font-semibold ${isLight ? "text-purple-950 font-bold" : "text-white"}`}>
-                          {pair.left[locale] || pair.left.en}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className={`hidden sm:inline font-mono ${isLight ? "text-purple-600 font-bold" : "text-purple-500"}`}>→</span>
-                          <span
-                            className={`rounded-xl border px-3 py-1.5 font-mono text-xs font-bold shadow-sm ${
-                              isLight
-                                ? "border-purple-300 bg-white text-pink-700"
-                                : "border-purple-700/50 bg-purple-900/40 text-pink-200"
-                            }`}
-                          >
-                            {pair.right[locale] || pair.right.en}
-                          </span>
-                        </div>
-                      </div>
+                    {content.mcqs.map((q, qIdx) => (
+                      <HintedQuestion
+                        key={`${q.id}-${practiceRound}`}
+                        question={q}
+                        number={qIdx + 1}
+                        chapterId={chapter.id}
+                        lifeLinks={lifeLinks}
+                        onFirstAnswer={(correct) => handleFirstAnswer(q.id, correct)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -2079,17 +1651,16 @@ export function InteractiveChapterClassroom({
                   }`}
                 >
                   <h3 className={`font-display text-base font-bold ${isLight ? "text-purple-950" : "text-white"}`}>
-                    Verified Samacheer Kalvi Learning Assets
+                    Chapter Resources
                   </h3>
                   <p className={`font-mono text-xs ${isLight ? "text-slate-600 font-medium" : "text-purple-300/70"}`}>
-                    Official state board textbook files, verified animated video lessons, and podcast guides.
+                    Textbook links and read-aloud for this chapter. Interactive video lessons are being prepared.
                   </p>
                 </div>
 
                 <div className="grid gap-4">
                   {content.resourcesList.map((res) => {
                     const isPdf = res.type === "pdf";
-                    const isVideo = res.type === "video";
                     const isAudio = res.type === "audio";
 
                     return (
@@ -2111,8 +1682,6 @@ export function InteractiveChapterClassroom({
                           >
                             {isPdf ? (
                               <FilePdf size={22} weight="duotone" className="text-pink-500" />
-                            ) : isVideo ? (
-                              <VideoCamera size={22} weight="duotone" className="text-cyan-500" />
                             ) : isAudio ? (
                               <SpeakerHigh size={22} weight="duotone" className="text-amber-500" />
                             ) : (
@@ -2130,14 +1699,14 @@ export function InteractiveChapterClassroom({
                                 }`}
                               >
                                 <Check size={10} weight="bold" />
-                                <span>Verified Official</span>
+                                <span>{isPdf ? "Textbook" : isAudio ? "Works now" : "Portal"}</span>
                               </span>
                               <span
                                 className={`font-mono text-[10px] uppercase tracking-wider ${
                                   isLight ? "text-purple-700 font-bold" : "text-purple-400"
                                 }`}
                               >
-                                {res.fileSize || res.duration || "Verified Material"}
+                                {res.fileSize || res.duration}
                               </span>
                             </div>
 
@@ -2158,16 +1727,7 @@ export function InteractiveChapterClassroom({
 
                         {/* Action Link / Button */}
                         <div className="shrink-0 self-end sm:self-center">
-                          {isVideo ? (
-                            <button
-                              type="button"
-                              onClick={() => setActiveVideoModal(res.title.en)}
-                              className="flex items-center gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 font-display text-xs font-bold text-white shadow-sm transition-all"
-                            >
-                              <Play size={12} weight="fill" />
-                              <span>Play Video</span>
-                            </button>
-                          ) : isAudio ? (
+                          {isAudio ? (
                             <button
                               type="button"
                               onClick={handleToggleSpeech}
@@ -2187,7 +1747,7 @@ export function InteractiveChapterClassroom({
                               rel="noopener noreferrer"
                               className="flex items-center gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 font-display text-xs font-bold text-white shadow-sm transition-all"
                             >
-                              <span>Open PDF</span>
+                              <span>{isPdf ? "Open textbooks" : "Open portal"}</span>
                               <ArrowSquareOut size={13} />
                             </a>
                           )}
@@ -2360,7 +1920,7 @@ export function InteractiveChapterClassroom({
                         Practice Knowledge Check
                       </p>
                       <span className={`font-mono text-[10px] ${isLight ? "text-slate-500 font-medium" : "text-purple-300/60"}`}>
-                        MCQs, Blanks & Match
+                        Questions with hints
                       </span>
                     </div>
                   </div>
@@ -2513,70 +2073,6 @@ export function InteractiveChapterClassroom({
         </div>
       )}
 
-      {/* --------------------------------------------------------------------- */}
-      {/* VIDEO LESSON MODAL OVERLAY                                            */}
-      {/* --------------------------------------------------------------------- */}
-      {activeVideoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-xl animate-fade-in">
-          <div
-            className={`relative w-full max-w-3xl rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
-              isLight
-                ? "border-purple-300 bg-white text-purple-950"
-                : "border-purple-800/60 bg-[#160a2b] text-white"
-            }`}
-          >
-            <div
-              className={`flex items-center justify-between border-b pb-3 ${
-                isLight ? "border-purple-200" : "border-purple-900/50"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <VideoCamera size={20} className="text-pink-500" weight="fill" />
-                <h3 className={`font-display text-base font-bold truncate ${isLight ? "text-purple-950" : "text-white"}`}>
-                  {activeVideoModal}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveVideoModal(null)}
-                className={`grid size-8 place-items-center rounded-xl transition-colors ${
-                  isLight
-                    ? "text-purple-900 hover:bg-purple-100"
-                    : "text-purple-300 hover:text-white hover:bg-purple-800/40"
-                }`}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Video Placeholder Player */}
-            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-purple-800/40 bg-purple-950/80 flex flex-col items-center justify-center text-center p-6">
-              <div className="size-16 rounded-full bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-white mb-3 shadow-[0_0_20px_rgba(168,85,247,0.4)]">
-                <Play size={24} weight="fill" className="ml-1 text-purple-300" />
-              </div>
-              <h4 className="font-display text-base font-bold text-white">
-                Interactive Samacheer Kalvi Visual Lesson
-              </h4>
-              <p className="font-mono text-xs text-purple-300/70 max-w-md mt-1">
-                Visual walkthrough aligned with Tamil Nadu State Board Class {standard} curriculum.
-              </p>
-              <span className="mt-4 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 font-mono text-xs text-emerald-300">
-                ✓ Streaming ready on all student devices
-              </span>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setActiveVideoModal(null)}
-                className="rounded-xl bg-purple-600 hover:bg-purple-500 px-5 py-2 font-display text-xs font-bold text-white transition-colors"
-              >
-                Close Video Player
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

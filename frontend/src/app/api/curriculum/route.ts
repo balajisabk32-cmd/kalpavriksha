@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  getStandardCurriculum,
-  getSubjectsForStandard,
-  isSupportedStandard,
-  SUPPORTED_STANDARDS,
-} from "@/lib/curriculum";
+import { isSupportedStandard, SUPPORTED_STANDARDS } from "@/lib/curriculum";
+import { getStandardCurriculum, getSubjectsForStandard } from "@/lib/curriculum-data";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

@@ -18,11 +18,8 @@ const THREE_NODES = [
   { x: 50, y: 85, cx: 54, cy: 68, moduleSlug: "gk-songs" },
 ] as const;
 
-interface IdentitySectionProps {
-  scrollProgress?: number;
-}
 
-export function IdentitySection({ scrollProgress }: IdentitySectionProps) {
+export function IdentitySection() {
   const { t, locale } = useLocale();
 
   return (

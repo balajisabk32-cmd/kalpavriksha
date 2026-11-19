@@ -80,7 +80,14 @@ export function CosmicParticleLayer({ moduleSlug = "learn", className = "" }: Co
     if (!ctx) return;
 
     let animId = 0;
+    let sleepId = 0;
     let width = (canvas.width = window.innerWidth);
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    /** Calm mode, reduced motion or an invisible canvas: draw nothing and poll slowly instead of every frame. */
+    const shouldSleep = () =>
+      document.documentElement.dataset.calm === "true" ||
+      reducedMotion?.matches === true ||
+      (typeof canvas.checkVisibility === "function" && !canvas.checkVisibility({ visibilityProperty: true }));
     let height = (canvas.height = window.innerHeight);
 
     const palette = (moduleSlug && PALETTES[moduleSlug]) ? PALETTES[moduleSlug] : PALETTES.learn;
@@ -154,6 +161,7 @@ export function CosmicParticleLayer({ moduleSlug = "learn", className = "" }: Co
 
     // Global listener for card clicks & interactive taps
     const handlePointerDown = (e: PointerEvent) => {
+      if (shouldSleep()) return;
       const target = e.target as HTMLElement | null;
       const isInteractive = target?.closest("button, a, [role='button'], [data-interactive], .group, .card, input");
       // Full rich burst on interactive elements/cards, gentle ripple burst on background clicks
@@ -170,10 +178,22 @@ export function CosmicParticleLayer({ moduleSlug = "learn", className = "" }: Co
 
     // Render loop
     const render = () => {
+      if (shouldSleep()) {
+        ctx.clearRect(0, 0, width, height);
+        particles.length = 0;
+        sleepId = window.setTimeout(() => {
+          if (!shouldSleep()) for (let i = 0; i < initialAmbientCount; i++) spawnAmbient(Math.random() * height);
+          animId = requestAnimationFrame(render);
+        }, 600);
+        return;
+      }
+
       ctx.clearRect(0, 0, width, height);
 
       // Maintain ambient particle population
-      if (particles.filter((p) => !p.isBurst).length < initialAmbientCount && Math.random() < 0.1) {
+      let ambient = 0;
+      for (const p of particles) if (!p.isBurst) ambient++;
+      if (ambient < initialAmbientCount && Math.random() < 0.1) {
         spawnAmbient(-20);
       }
 
@@ -284,6 +304,7 @@ export function CosmicParticleLayer({ moduleSlug = "learn", className = "" }: Co
 
     return () => {
       cancelAnimationFrame(animId);
+      window.clearTimeout(sleepId);
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("resize", handleResize);
     };

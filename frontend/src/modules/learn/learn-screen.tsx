@@ -85,7 +85,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Burst } from "@/components/burst";
-import { GrowthStage, LearnerSetup, useHydrated } from "@/components/learner-setup";
+import { GrowthStage, useHydrated } from "@/components/learner-setup";
+import { useIsStaff } from "@/components/session-user";
 import { LiquidGlassSurface } from "@/components/liquid-glass-surface";
 import { useLocale } from "@/components/locale-provider";
 import { updateProgress, useProgress } from "@/components/progress-store";
@@ -120,26 +121,29 @@ import { authService } from "@/lib/auth-service";
 import { BAND_INFO } from "@/lib/bands";
 import {
   filterSubjectsByGroup,
-  getChapterById,
   getSeniorGroup,
-  getSubjectsForStandard,
   isSupportedStandard,
   SENIOR_GROUPS,
   type SeniorGroupId,
-  SUPPORTED_STANDARDS,
   TN_CLASS_1_2_3_NEW_TEXTBOOKS_URL,
   TN_NEW_SYLLABUS_2026_27_URL,
   TN_TEXTBOOK_PORTAL_URL,
+  toChapterOutline,
+  toSubjectMeta,
+  type ChapterOutline,
+  type ChapterRef,
   type CurriculumChapter,
-  type CurriculumSubject,
+  type SubjectMeta,
+  type SubjectOutline,
 } from "@/lib/curriculum";
+import { useChapterDetail, useStandardOutline } from "@/lib/curriculum-client";
 import { StandardSwitcherModal } from "@/components/standard-switcher-modal";
 import { completeLesson, localDay, setLastAccessed, XP, type Band, type Profile } from "@/lib/progress";
 
 // ----------------------------------------------------------------------------
 // Chapter Topic Icon Resolver & Renderer (Lesson-specific iconography)
 // ----------------------------------------------------------------------------
-function resolveChapterIcon(subject: CurriculumSubject, chapter: CurriculumChapter): string {
+function resolveChapterIcon(subject: SubjectMeta, chapter: Pick<CurriculumChapter, "id" | "title" | "icon">): string {
   if (chapter.icon) return chapter.icon;
 
   const t = (chapter.title?.en || "").toLowerCase();
@@ -419,7 +423,7 @@ function SubjectIcon({
   icon,
   className = "size-6",
 }: {
-  icon: CurriculumSubject["icon"];
+  icon: SubjectMeta["icon"];
   className?: string;
 }) {
   switch (icon) {
@@ -486,9 +490,9 @@ function CosmicCurriculumLessonDialog({
   onSelectChapter,
 }: {
   standard: number;
-  subject: CurriculumSubject | null;
+  subject: SubjectMeta | null;
   chapter: CurriculumChapter | null;
-  allChapters: { subject: CurriculumSubject; chapter: CurriculumChapter }[];
+  allChapters: readonly ChapterRef[];
   onClose: () => void;
   onSelectChapter: (chId: string) => void;
 }) {
@@ -921,9 +925,9 @@ function StandardCurriculumLessonDialog({
   onSelectChapter,
 }: {
   standard: number;
-  subject: CurriculumSubject | null;
+  subject: SubjectMeta | null;
   chapter: CurriculumChapter | null;
-  allChapters: { subject: CurriculumSubject; chapter: CurriculumChapter }[];
+  allChapters: readonly ChapterRef[];
   onClose: () => void;
   onSelectChapter: (chId: string) => void;
 }) {
@@ -1340,31 +1344,106 @@ function StandardCurriculumLessonDialog({
 // Subject Card (Rendered in "this place" for All Subjects view)
 // ----------------------------------------------------------------------------
 
+const DIALOG_COPY = {
+  en: { opening: "Opening chapter…", failed: "Couldn't open this chapter. Check the internet connection.", retry: "Try again", close: "Close" },
+  ta: { opening: "பாடம் திறக்கப்படுகிறது…", failed: "இந்தப் பாடத்தைத் திறக்க முடியவில்லை. இணைய இணைப்பைச் சரிபாருங்கள்.", retry: "மீண்டும் முயல்", close: "மூடு" },
+} as const;
+
+/**
+ * Opens one chapter. Lesson text and questions are not in the page bundle: the
+ * chapter (~2 KB) is fetched from `/api/curriculum/chapter/[id]` when opened.
+ * Prev/next navigation uses the class outline the dashboard already has (or the
+ * other class's outline when the chapter belongs to a different class).
+ */
 function CurriculumLessonDialog(props: {
-  standard: number;
-  subject: CurriculumSubject | null;
-  chapter: CurriculumChapter | null;
-  allChapters: { subject: CurriculumSubject; chapter: CurriculumChapter }[];
+  chapterId: string | null;
+  currentStandard: number;
+  currentChapters: readonly ChapterRef[];
   onClose: () => void;
   onSelectChapter: (chId: string) => void;
 }) {
-  if (!props.chapter || !props.subject) return null;
+  const { locale } = useLocale();
+  const detail = useChapterDetail(props.chapterId);
+  const standard = detail.status === "ready" ? detail.data.standard : null;
+  const otherOutline = useStandardOutline(standard !== null && standard !== props.currentStandard ? standard : null);
 
-  if (props.standard <= 3) {
+  const allChapters = useMemo((): readonly ChapterRef[] => {
+    if (detail.status !== "ready") return [];
+    if (detail.data.standard === props.currentStandard) return props.currentChapters;
+    if (otherOutline.status === "ready") {
+      return otherOutline.data.subjects.flatMap((s) => {
+        const subject = toSubjectMeta(s);
+        return s.chapters.map((chapter) => ({ subject, chapter }));
+      });
+    }
+    return [{ subject: detail.data.subject, chapter: toChapterOutline(detail.data.chapter) }];
+  }, [detail, otherOutline, props.currentStandard, props.currentChapters]);
+
+  if (!props.chapterId) return null;
+  const copy = DIALOG_COPY[locale];
+
+  if (detail.status !== "ready") {
     return (
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={props.chapter.title.en}
+        aria-label={detail.status === "error" ? copy.failed : copy.opening}
+        className="visible fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      >
+        {detail.status === "error" ? (
+          <div role="alert" className="flex max-w-sm flex-col items-center gap-4 rounded-3xl border border-line bg-surface p-6 text-center text-text shadow-2xl">
+            <p className="text-sm">{copy.failed}</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={detail.retry}
+                className="min-h-10 rounded-xl bg-purple-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet"
+              >
+                {copy.retry}
+              </button>
+              <button
+                type="button"
+                onClick={props.onClose}
+                className="min-h-10 rounded-xl border border-line px-4 text-sm font-semibold transition-colors hover:bg-violet/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet"
+              >
+                {copy.close}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div role="status" className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-5 py-4 text-sm text-text shadow-2xl">
+            <span aria-hidden className="size-4 animate-spin rounded-full border-2 border-violet border-t-transparent motion-reduce:animate-none" />
+            {copy.opening}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const playerProps = {
+    standard: detail.data.standard,
+    subject: detail.data.subject,
+    chapter: detail.data.chapter,
+    allChapters: [...allChapters],
+    onClose: props.onClose,
+    onSelectChapter: props.onSelectChapter,
+  };
+
+  if (detail.data.standard <= 3) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={detail.data.chapter.title.en}
         className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/85 p-2 sm:p-4 backdrop-blur-md"
       >
         <div className="relative w-full max-w-[1240px] my-auto">
-          <JuniorCosmicLessonPlayer {...props} />
+          <JuniorCosmicLessonPlayer {...playerProps} />
         </div>
       </div>
     );
   }
-  return <InteractiveChapterClassroom {...props} />;
+  return <InteractiveChapterClassroom {...playerProps} />;
 }
 
 function CosmicSubjectCard({
@@ -1373,7 +1452,7 @@ function CosmicSubjectCard({
   doneCount,
   onOpen,
 }: {
-  subject: CurriculumSubject;
+  subject: SubjectOutline;
   standard: number;
   doneCount: number;
   onOpen: () => void;
@@ -1452,8 +1531,8 @@ function CosmicChapterCard({
   done,
   onOpen,
 }: {
-  subject: CurriculumSubject;
-  chapter: CurriculumChapter;
+  subject: SubjectOutline;
+  chapter: ChapterOutline;
   done: boolean;
   onOpen: () => void;
 }) {
@@ -1511,7 +1590,7 @@ function StandardSubjectCard({
   doneCount,
   onOpen,
 }: {
-  subject: CurriculumSubject;
+  subject: SubjectOutline;
   standard: number;
   doneCount: number;
   onOpen: () => void;
@@ -1577,8 +1656,8 @@ function StandardChapterCard({
   done,
   onOpen,
 }: {
-  subject: CurriculumSubject;
-  chapter: CurriculumChapter;
+  subject: SubjectOutline;
+  chapter: ChapterOutline;
   done: boolean;
   onOpen: () => void;
 }) {
@@ -1640,7 +1719,7 @@ function StandardChapterCard({
 // ----------------------------------------------------------------------------
 
 function SubjectCard(props: {
-  subject: CurriculumSubject;
+  subject: SubjectOutline;
   standard: number;
   doneCount: number;
   onOpen: () => void;
@@ -1652,8 +1731,8 @@ function SubjectCard(props: {
 }
 
 function ChapterCard(props: {
-  subject: CurriculumSubject;
-  chapter: CurriculumChapter;
+  subject: SubjectOutline;
+  chapter: ChapterOutline;
   standard?: number;
   done: boolean;
   onOpen: () => void;
@@ -1664,7 +1743,7 @@ function ChapterCard(props: {
   return <StandardChapterCard {...props} />;
 }
 
-function getJuniorSubjectMeta(sub: CurriculumSubject) {
+function getJuniorSubjectMeta(sub: SubjectOutline) {
   const code = sub.code?.toUpperCase() || "";
   const id = sub.id.toLowerCase();
   if (code === "TAM" || id.includes("tamil")) {
@@ -1755,21 +1834,18 @@ function PersonalisedLearnDashboard({
   // Chapter classroom dialog is strictly closed by default, opening only when a chapter is touched/clicked
   const [openChapterId, setOpenChapterId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const ch = searchParams?.get("chapter");
-    if (ch) {
-      for (const std of SUPPORTED_STANDARDS) {
-        const stdSubjects = getSubjectsForStandard(std);
-        if (stdSubjects.some((s) => s.chapters.some((c) => c.id === ch))) {
-          setOverrideStandard(std);
-          break;
-        }
-      }
-    }
-  }, [searchParams]);
-
   // Active Standard (defaults to Class 8 as in Digital Learning template)
   const [overrideStandard, setOverrideStandard] = useState<number | null>(null);
+  // Students see only their own class; teachers and admins can open any class 4–12.
+  const isStaff = useIsStaff();
+  useEffect(() => {
+    if (!isStaff) return;
+    // `?class=7` (from the teacher area) or a chapter link: chapter ids start with their class, "c10-science-ch4" → 10.
+    const ch = searchParams?.get("chapter");
+    const std = Number(searchParams?.get("class") ?? (ch ? /^c(\d+)-/.exec(ch)?.[1] : NaN));
+    if (isSupportedStandard(std) && std >= 4) setOverrideStandard(std);
+  }, [searchParams, isStaff]);
+
   const currentStandard = overrideStandard ?? (isSupportedStandard(profile.grade) ? profile.grade : 8);
   const isJunior = currentStandard <= 3; // Class 1 to 3 gets Super Learning Adventure!
   const isSenior = currentStandard >= 11;
@@ -1790,7 +1866,12 @@ function PersonalisedLearnDashboard({
   }, [profile.seniorGroup]);
 
   // All subjects for this standard
-  const allStandardSubjects = useMemo(() => getSubjectsForStandard(currentStandard), [currentStandard]);
+  // Fetched per class from /api/curriculum/outline/[standard] (not bundled).
+  const outline = useStandardOutline(currentStandard);
+  const allStandardSubjects = useMemo(
+    (): readonly SubjectOutline[] => (outline.status === "ready" ? outline.data.subjects : []),
+    [outline],
+  );
 
   // Displayed subjects (strictly filtered by group for Class 11/12)
   const subjects = useMemo(() => {
@@ -1808,37 +1889,24 @@ function PersonalisedLearnDashboard({
     progress.lessonsDone.includes(item.chapter.id),
   ).length;
 
-  // Active chapter opened in dialog
-  const activeChapterItem = useMemo(() => {
-    if (!openChapterId) return null;
-    const inCurrent = allFlatChapters.find((item) => item.chapter.id === openChapterId);
-    if (inCurrent) {
-      return { standard: currentStandard, subject: inCurrent.subject, chapter: inCurrent.chapter };
-    }
-    for (const std of SUPPORTED_STANDARDS) {
-      const stdSubjects = getSubjectsForStandard(std);
-      for (const s of stdSubjects) {
-        const ch = s.chapters.find((c) => c.id === openChapterId);
-        if (ch) {
-          return { standard: std, subject: s, chapter: ch };
-        }
-      }
-    }
-    return null;
-  }, [openChapterId, allFlatChapters, currentStandard]);
+  // Chapter refs for prev/next navigation inside the dialog.
+  const currentChapterRefs = useMemo(
+    (): readonly ChapterRef[] =>
+      allFlatChapters.map(({ subject, chapter }) => ({ subject: toSubjectMeta(subject), chapter })),
+    [allFlatChapters],
+  );
 
   // Personalised Continue Learning record
   const continueRecord = useMemo((): {
-    subject: CurriculumSubject;
-    chapter: CurriculumChapter;
+    subject: SubjectOutline;
+    chapter: ChapterOutline;
     isStarter: boolean;
   } | null => {
     if (profile.lastAccessed && profile.lastAccessed.standard === currentStandard) {
-      const data = getChapterById(
-        currentStandard,
-        profile.lastAccessed.subjectId,
-        profile.lastAccessed.chapterId,
-      );
+      const { subjectId, chapterId } = profile.lastAccessed;
+      const subject = allStandardSubjects.find((s) => s.id === subjectId);
+      const chapter = subject?.chapters.find((c) => c.id === chapterId);
+      const data = subject && chapter ? { subject, chapter } : undefined;
       if (data) {
         return {
           subject: data.subject,
@@ -1860,6 +1928,7 @@ function PersonalisedLearnDashboard({
   }, [profile.lastAccessed, currentStandard, allFlatChapters]);
 
   const handleStandardChange = (newStd: number, newGroup?: string) => {
+    if (!isStaff) return;
     setOverrideStandard(newStd);
     authService.updateStandard(newStd, newGroup);
     if (newGroup && getSeniorGroup(newGroup)) {
@@ -1887,7 +1956,7 @@ function PersonalisedLearnDashboard({
         filter={filter}
         setFilter={setFilter}
         onOpenChapter={(chapterId) => setOpenChapterId(chapterId)}
-        onOpenStandardSwitcher={() => setSwitcherOpen(true)}
+        onOpenStandardSwitcher={isStaff ? () => setSwitcherOpen(true) : undefined}
         onSelectStandard={handleStandardChange}
         continueRecord={continueRecord}
         totalChapters={totalChapters}
@@ -1897,21 +1966,17 @@ function PersonalisedLearnDashboard({
         onSelectSeniorGroup={(grp) => {
           if (getSeniorGroup(grp)) {
             setSeniorGroupFilter(grp as SeniorGroupId);
-            authService.updateStandard(currentStandard, grp);
+            // A student's stream is set by the admin; staff remember the stream they browse.
+            if (isStaff) authService.updateStandard(currentStandard, grp);
           }
         }}
       />
 
       {/* Interactive Lesson Dialog (Reader & Quiz) */}
       <CurriculumLessonDialog
-        standard={activeChapterItem?.standard ?? currentStandard}
-        subject={activeChapterItem?.subject ?? null}
-        chapter={activeChapterItem?.chapter ?? null}
-        allChapters={
-          activeChapterItem && activeChapterItem.standard !== currentStandard
-            ? getSubjectsForStandard(activeChapterItem.standard).flatMap((s) => s.chapters.map((ch) => ({ subject: s, chapter: ch })))
-            : allFlatChapters
-        }
+        chapterId={openChapterId}
+        currentStandard={currentStandard}
+        currentChapters={currentChapterRefs}
         onClose={() => setOpenChapterId(null)}
         onSelectChapter={(chId) => setOpenChapterId(chId)}
       />
@@ -1925,13 +1990,8 @@ function PersonalisedLearnDashboard({
 export function LearnScreen({ band }: { band: Band }) {
   const { profile } = useProgress();
 
-  if (!profile) {
-    return (
-      <div className="mx-auto max-w-4xl rounded-[28px] border border-line bg-surface/80 p-5 backdrop-blur-sm sm:p-10">
-        <LearnerSetup redirectTo="/m/learn" />
-      </div>
-    );
-  }
+  // ModuleShell renders this only once the signed-in account's profile is on the device.
+  if (!profile) return null;
 
   return <PersonalisedLearnDashboard band={band ?? "middle"} profile={profile} />;
 }

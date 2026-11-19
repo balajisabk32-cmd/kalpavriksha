@@ -5,10 +5,12 @@ import { useMemo, useState } from "react";
 import { BandHint } from "@/components/band-hint";
 import { Burst } from "@/components/burst";
 import { useLocale } from "@/components/locale-provider";
+import { useIsStaff } from "@/components/session-user";
 import { updateProgress, useProgress } from "@/components/progress-store";
 import { StandardSwitcherModal } from "@/components/standard-switcher-modal";
 import { authService } from "@/lib/auth-service";
-import { getLearningTrackStats } from "@/lib/learning-track";
+import { getLearningTrackStats, resolveTrackStandard } from "@/lib/learning-track";
+import { useStandardOutline } from "@/lib/curriculum-client";
 import {
   AREAS,
   XP,
@@ -523,7 +525,13 @@ export function GrowScreen({ band }: { band: Band }) {
   const ranked = [...AREAS].sort((a, b) => scores[b] - scores[a]);
 
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  const learningStats = useMemo(() => getLearningTrackStats(progress), [progress]);
+  const isStaff = useIsStaff();
+  const trackOutline = useStandardOutline(resolveTrackStandard(progress));
+  const trackSubjects = trackOutline.status === "ready" ? trackOutline.data.subjects : null;
+  const learningStats = useMemo(
+    () => getLearningTrackStats(progress, () => trackSubjects ?? []),
+    [progress, trackSubjects],
+  );
 
   const totalLeaves = progress.activities.length + progress.lessonsDone.length;
 
@@ -618,7 +626,7 @@ export function GrowScreen({ band }: { band: Band }) {
       <LearningTrackCard
         stats={learningStats}
         band={band}
-        onOpenStandardSwitcher={() => setSwitcherOpen(true)}
+        onOpenStandardSwitcher={isStaff ? () => setSwitcherOpen(true) : undefined}
       />
 
       <LiquidGlassSurface

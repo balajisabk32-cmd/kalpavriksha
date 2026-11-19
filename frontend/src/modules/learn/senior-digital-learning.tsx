@@ -30,9 +30,10 @@ import { useLocale } from "@/components/locale-provider";
 import { useProgress } from "@/components/progress-store";
 import { useTheme } from "@/lib/theme";
 import type { Profile } from "@/lib/progress";
-import { SENIOR_GROUPS, type CurriculumChapter, type CurriculumSubject } from "@/lib/curriculum";
+import { SENIOR_GROUPS, type ChapterOutline, type SubjectOutline } from "@/lib/curriculum";
 import { MODULES } from "@/modules/registry";
 import { accentOf } from "@/modules/accents";
+import { ReviewHub } from "./review-hub";
 
 interface EncouragementQuote {
   quote: { en: string; ta: string };
@@ -213,16 +214,16 @@ const DAILY_ENCOURAGEMENT_QUOTES: readonly EncouragementQuote[] = [
 
 interface SeniorDigitalLearningProps {
   currentStandard: number;
-  subjects: readonly CurriculumSubject[];
-  allFlatChapters: Array<{ subject: CurriculumSubject; chapter: CurriculumChapter }>;
+  subjects: readonly SubjectOutline[];
+  allFlatChapters: Array<{ subject: SubjectOutline; chapter: ChapterOutline }>;
   filter: string;
   setFilter: (f: string) => void;
   onOpenChapter: (chapterId: string) => void;
   onOpenStandardSwitcher?: () => void;
   onSelectStandard?: (std: number) => void;
   continueRecord: {
-    subject: CurriculumSubject;
-    chapter: CurriculumChapter;
+    subject: SubjectOutline;
+    chapter: ChapterOutline;
     isStarter: boolean;
   } | null;
   totalChapters: number;
@@ -247,7 +248,7 @@ const CLASS_ITEMS = [
   { std: 12, label: "Class 12", image: "/images/learn/class-12-trophy.png" },
 ];
 
-function getSubjectVisual(sub: CurriculumSubject) {
+function getSubjectVisual(sub: SubjectOutline) {
   const id = sub.id.toLowerCase();
   const code = (sub.code || "").toUpperCase();
 
@@ -610,7 +611,7 @@ export function SeniorDigitalLearning({
     }
   };
 
-  const handleSelectSubject = (sub?: CurriculumSubject) => {
+  const handleSelectSubject = (sub?: SubjectOutline) => {
     if (sub) {
       setActiveSubjectId((prev) => (prev === sub.id ? "all" : sub.id));
     }
@@ -630,7 +631,10 @@ export function SeniorDigitalLearning({
             className="group flex items-center gap-1.5 rounded-xl border border-purple-800/50 bg-purple-950/60 px-3 py-2 text-xs font-semibold text-purple-200 transition-all hover:bg-purple-900/60 hover:text-white hover:border-purple-500 shadow-sm"
             title="Go Back"
           >
-            <ArrowLeft size={15} className="transition-transform duration-200 group-hover:-translate-x-0.5 text-purple-400 group-hover:text-purple-200" />
+            <ArrowLeft
+              size={15}
+              className="transition-transform duration-200 group-hover:-translate-x-0.5 text-purple-400 group-hover:text-purple-200"
+            />
             <span>Back</span>
           </button>
 
@@ -689,9 +693,9 @@ export function SeniorDigitalLearning({
 
           {/* Profile Card */}
           <Link
-            href="/sign-in?edit=true&redirect=/m/learn"
+            href="/me"
             className="group flex items-center gap-2.5 rounded-full border border-purple-700/50 bg-gradient-to-r from-purple-950/80 to-[#1e0e38]/80 py-1 pl-1 pr-3 shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all hover:border-purple-500 hover:scale-[1.02]"
-            title="Edit Academic Profile"
+            title="My learner card"
           >
             <div className="relative size-8 shrink-0 overflow-hidden rounded-full border border-purple-400 bg-purple-900 p-0.5">
               <Image
@@ -703,9 +707,7 @@ export function SeniorDigitalLearning({
               />
             </div>
             <div className="flex flex-col text-left">
-              <span className="font-display text-xs font-bold text-white leading-tight">
-                {learnerName}
-              </span>
+              <span className="font-display text-xs font-bold text-white leading-tight">{learnerName}</span>
               <span className="font-mono text-[10px] text-purple-300/80 flex items-center gap-1">
                 Class {currentStandard} {isSenior && activeSeniorGroup ? `· ${activeSeniorGroup.badge}` : ""}
               </span>
@@ -766,8 +768,7 @@ export function SeniorDigitalLearning({
                 <div className="relative size-14 sm:size-16 shrink-0 rounded-2xl border border-purple-500/40 bg-gradient-to-b from-purple-900/60 to-purple-950/80 p-2 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
                   <Image
                     src={
-                      CLASS_ITEMS.find((c) => c.std === currentStandard)?.image ||
-                      "/images/learn/class-8-armillary.png"
+                      CLASS_ITEMS.find((c) => c.std === currentStandard)?.image || "/images/learn/class-8-armillary.png"
                     }
                     alt={`Class ${currentStandard}`}
                     width={64}
@@ -788,53 +789,58 @@ export function SeniorDigitalLearning({
                       {currentStandard <= 5
                         ? "Primary Stage"
                         : currentStandard <= 8
-                        ? "Middle School"
-                        : currentStandard <= 10
-                        ? "Secondary School"
-                        : "Higher Secondary"}
+                          ? "Middle School"
+                          : currentStandard <= 10
+                            ? "Secondary School"
+                            : "Higher Secondary"}
                     </span>
                     <span className="rounded-full bg-emerald-500/15 border border-emerald-400/30 px-2.5 py-0.5 font-mono text-[11px] text-emerald-300">
                       {profile?.board === "cbse"
                         ? "CBSE"
                         : profile?.board === "icse_other"
-                        ? "ICSE / Other"
-                        : "Tamil Nadu State Board"}
+                          ? "ICSE / Other"
+                          : "Tamil Nadu State Board"}
                     </span>
                   </div>
 
                   <p className="font-mono text-xs text-purple-300/80">
                     {isSenior && activeSeniorGroup ? (
                       <span>
-                        Stream: <strong className="text-white font-medium">{activeSeniorGroup.name[locale] || activeSeniorGroup.name.en}</strong> · Personalized Syllabus
+                        Stream:{" "}
+                        <strong className="text-white font-medium">
+                          {activeSeniorGroup.name[locale] || activeSeniorGroup.name.en}
+                        </strong>{" "}
+                        · Personalized Syllabus
                       </span>
                     ) : (
-                      <span>
-                        Samacheer Kalvi · Enrolled Academic Profile
-                      </span>
+                      <span>Samacheer Kalvi · Enrolled Academic Profile</span>
                     )}
                   </p>
                 </div>
               </div>
 
               {/* Right: Quick Edit Link */}
-              <Link
-                href="/sign-in?edit=true&redirect=/m/learn"
-                className="group inline-flex items-center gap-2 self-start sm:self-auto rounded-xl border border-purple-700/50 bg-purple-950/70 px-3.5 py-2 font-mono text-xs font-medium text-purple-200 hover:text-white hover:bg-purple-900/60 hover:border-purple-400 transition-all shadow-sm"
-                title="Change Class, Board or Stream in Profile Settings"
-              >
-                <PencilSimple size={15} className="text-purple-400 transition-transform group-hover:rotate-12" />
-                <span>Edit Academic Profile</span>
-              </Link>
+              {onOpenStandardSwitcher && (
+                <button
+                  type="button"
+                  onClick={onOpenStandardSwitcher}
+                  className="group inline-flex items-center gap-2 self-start sm:self-auto rounded-xl border border-purple-700/50 bg-purple-950/70 px-3.5 py-2 font-mono text-xs font-medium text-purple-200 hover:text-white hover:bg-purple-900/60 hover:border-purple-400 transition-all shadow-sm"
+                  title="Change Class, Board or Stream in Profile Settings"
+                >
+                  <PencilSimple size={15} className="text-purple-400 transition-transform group-hover:rotate-12" />
+                  <span>Edit Academic Profile</span>
+                </button>
+              )}
             </div>
           </section>
+
+          {/* Daily 5 spaced review + mistake notebook (Classes 4-12 practise in the chapter classroom) */}
+          {currentStandard >= 4 && <ReviewHub />}
 
           {/* ----------------------------------------------------------------- */}
           {/* B. EXPLORE YOUR SUBJECTS                                          */}
           {/* ----------------------------------------------------------------- */}
-          <section
-            ref={subjectsSectionRef}
-            className="flex flex-col gap-3.5 transition-all duration-500 ease-out"
-          >
+          <section ref={subjectsSectionRef} className="flex flex-col gap-3.5 transition-all duration-500 ease-out">
             {/* Header: Title + Badges + Elongate View Toggle */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div className="flex flex-wrap items-center gap-2">
@@ -889,9 +895,7 @@ export function SeniorDigitalLearning({
                       <span className="rounded-full bg-purple-500/20 border border-purple-400/30 px-2 py-0.5 font-mono text-[10px] text-purple-300">
                         Enrolled Stream
                       </span>
-                      <span className="font-mono text-[10.5px] text-purple-300/70">
-                        Code {activeSeniorGroup?.code}
-                      </span>
+                      <span className="font-mono text-[10.5px] text-purple-300/70">Code {activeSeniorGroup?.code}</span>
                     </div>
                     <span className="font-mono text-[11px] text-purple-300/80">
                       {activeSeniorGroup?.description[locale] || activeSeniorGroup?.description.en}
@@ -900,14 +904,17 @@ export function SeniorDigitalLearning({
                 </div>
 
                 <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <Link
-                    href="/sign-in?edit=true&redirect=/m/learn"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-purple-700/50 bg-purple-900/40 px-3 py-1.5 font-mono text-xs text-purple-200 hover:text-white hover:bg-purple-800/50 hover:border-purple-400 transition-colors shadow-sm"
-                    title="Change Stream in Profile Settings"
-                  >
-                    <PencilSimple size={13} />
-                    <span>Change Stream in Profile</span>
-                  </Link>
+                  {onOpenStandardSwitcher && (
+                    <button
+                      type="button"
+                      onClick={onOpenStandardSwitcher}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-purple-700/50 bg-purple-900/40 px-3 py-1.5 font-mono text-xs text-purple-200 hover:text-white hover:bg-purple-800/50 hover:border-purple-400 transition-colors shadow-sm"
+                      title="Change Stream in Profile Settings"
+                    >
+                      <PencilSimple size={13} />
+                      <span>Change Stream in Profile</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -919,26 +926,22 @@ export function SeniorDigitalLearning({
                   ? isSenior
                     ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
                     : subjects.length === 5
-                    ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
-                    : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"
+                      ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
+                      : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"
                   : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
               }`}
             >
               {subjects.map((sub) => {
                 const visual = getSubjectVisual(sub);
                 const isSelected = activeSubjectId === sub.id;
-                const completedCount = sub.chapters.filter((ch) =>
-                  progress.lessonsDone.includes(ch.id),
-                ).length;
+                const completedCount = sub.chapters.filter((ch) => progress.lessonsDone.includes(ch.id)).length;
 
                 return (
                   <div
                     key={sub.id}
                     onClick={() => handleSelectSubject(sub)}
                     className={`group cosmic-card-glow cursor-pointer flex flex-col justify-between rounded-2xl border p-4 bg-gradient-to-b ${visual.gradient} backdrop-blur-md transition-all duration-300 ${
-                      isSelected
-                        ? visual.activeBorderClass
-                        : visual.borderClass
+                      isSelected ? visual.activeBorderClass : visual.borderClass
                     }`}
                   >
                     <div>
@@ -955,7 +958,9 @@ export function SeniorDigitalLearning({
                       <h3 className="font-display text-base font-black text-white leading-tight">
                         {sub.name[locale] || sub.name.en}
                       </h3>
-                      <p className={`font-display text-[11px] font-semibold ${visual.subtextColor} leading-snug line-clamp-1`}>
+                      <p
+                        className={`font-display text-[11px] font-semibold ${visual.subtextColor} leading-snug line-clamp-1`}
+                      >
                         {visual.tagline}
                       </p>
                     </div>
@@ -1002,9 +1007,7 @@ export function SeniorDigitalLearning({
               <div className="flex items-center justify-between mb-3">
                 <span className="font-display text-sm font-bold text-white flex items-center gap-2">
                   <BookOpen size={16} className="text-purple-400" />
-                  <span>
-                    {subjects.find((s) => s.id === activeSubjectId)?.name[locale] || "Chapters"}
-                  </span>
+                  <span>{subjects.find((s) => s.id === activeSubjectId)?.name[locale] || "Chapters"}</span>
                   <span className="font-mono text-xs text-purple-300/60 font-normal">
                     ({displayedChapters.length} chapters)
                   </span>
@@ -1072,12 +1075,8 @@ export function SeniorDigitalLearning({
                   />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">
-                    Live Classes
-                  </h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">
-                    Join interactive sessions
-                  </p>
+                  <h4 className="font-display text-xs font-bold text-white leading-tight">Live Classes</h4>
+                  <p className="font-mono text-[10px] text-purple-300/60 truncate">Join interactive sessions</p>
                 </div>
               </div>
 
@@ -1096,12 +1095,8 @@ export function SeniorDigitalLearning({
                   />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">
-                    Quizzes & Games
-                  </h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">
-                    Learn & test knowledge
-                  </p>
+                  <h4 className="font-display text-xs font-bold text-white leading-tight">Quizzes & Games</h4>
+                  <p className="font-mono text-[10px] text-purple-300/60 truncate">Learn & test knowledge</p>
                 </div>
               </Link>
 
@@ -1117,12 +1112,8 @@ export function SeniorDigitalLearning({
                   />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">
-                    Library
-                  </h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">
-                    e-Books & Resources
-                  </p>
+                  <h4 className="font-display text-xs font-bold text-white leading-tight">Library</h4>
+                  <p className="font-mono text-[10px] text-purple-300/60 truncate">e-Books & Resources</p>
                 </div>
               </div>
 
@@ -1138,12 +1129,8 @@ export function SeniorDigitalLearning({
                   />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">
-                    Assignments
-                  </h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">
-                    Submit & track work
-                  </p>
+                  <h4 className="font-display text-xs font-bold text-white leading-tight">Assignments</h4>
+                  <p className="font-mono text-[10px] text-purple-300/60 truncate">Submit & track work</p>
                 </div>
               </div>
 
@@ -1159,12 +1146,8 @@ export function SeniorDigitalLearning({
                   />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">
-                    Achievements
-                  </h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">
-                    Badges & Rewards
-                  </p>
+                  <h4 className="font-display text-xs font-bold text-white leading-tight">Achievements</h4>
+                  <p className="font-mono text-[10px] text-purple-300/60 truncate">Badges & Rewards</p>
                 </div>
               </div>
             </div>
@@ -1182,25 +1165,24 @@ export function SeniorDigitalLearning({
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 <GraduationCap size={18} weight="fill" className="text-purple-400" />
-                <h3 className="font-display text-sm sm:text-base font-bold text-white">
-                  Your Learning Path
-                </h3>
+                <h3 className="font-display text-sm sm:text-base font-bold text-white">Your Learning Path</h3>
               </div>
-              <Link
-                href="/sign-in?edit=true&redirect=/m/learn"
-                className="font-mono text-[11px] text-purple-400 hover:text-purple-300 hover:underline"
-              >
-                Change Class
-              </Link>
+              {onOpenStandardSwitcher && (
+                <button
+                  type="button"
+                  onClick={onOpenStandardSwitcher}
+                  className="font-mono text-[11px] text-purple-400 hover:text-purple-300 hover:underline"
+                >
+                  Change Class
+                </button>
+              )}
             </div>
 
             {/* Breadcrumb Path */}
             <p className="font-mono text-xs text-purple-200/90 mb-3 flex items-center gap-1.5 flex-wrap">
               <span className="text-purple-300 font-bold">Class {currentStandard}</span>
               <span>›</span>
-              <span className="text-pink-300">
-                {continueRecord ? continueRecord.subject.name[locale] : "Science"}
-              </span>
+              <span className="text-pink-300">{continueRecord ? continueRecord.subject.name[locale] : "Science"}</span>
               <span>›</span>
               <span>Term 1</span>
               <span>›</span>
@@ -1217,7 +1199,9 @@ export function SeniorDigitalLearning({
               />
             </div>
             <div className="flex items-center justify-between font-mono text-[11px] text-purple-300/70">
-              <span>{completedChaptersCount} of {totalChapters} chapters completed</span>
+              <span>
+                {completedChaptersCount} of {totalChapters} chapters completed
+              </span>
               <span className="font-bold text-purple-300">{progressPct}%</span>
             </div>
           </div>
@@ -1231,9 +1215,7 @@ export function SeniorDigitalLearning({
                 <span className="grid size-6 place-items-center rounded-full bg-purple-600 text-white shadow-sm">
                   <Play size={10} weight="fill" className="ml-0.5" />
                 </span>
-                <h3 className="font-display text-sm sm:text-base font-bold text-white">
-                  Continue Learning
-                </h3>
+                <h3 className="font-display text-sm sm:text-base font-bold text-white">Continue Learning</h3>
               </div>
               <button
                 type="button"
@@ -1290,9 +1272,7 @@ export function SeniorDigitalLearning({
           <div className="rounded-2xl border border-purple-900/30 bg-[#160a2b]/70 p-5 backdrop-blur-xl shadow-lg flex flex-col gap-2.5">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-purple-400">📚</span>
-              <h3 className="font-display text-sm sm:text-base font-bold text-white">
-                Quick Access
-              </h3>
+              <h3 className="font-display text-sm sm:text-base font-bold text-white">Quick Access</h3>
             </div>
 
             <button
@@ -1304,9 +1284,7 @@ export function SeniorDigitalLearning({
                 <span className="grid size-7 place-items-center rounded-lg bg-purple-900/60 text-purple-300">
                   <FileText size={16} />
                 </span>
-                <span className="font-display text-xs font-bold text-purple-100 group-hover:text-white">
-                  My Notes
-                </span>
+                <span className="font-display text-xs font-bold text-purple-100 group-hover:text-white">My Notes</span>
               </div>
               <CaretRight size={12} className="text-purple-400 transition-transform group-hover:translate-x-0.5" />
             </button>
@@ -1379,17 +1357,11 @@ export function SeniorDigitalLearning({
 
               {/* Author & Role in front */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span
-                  className="quote-author font-mono text-xs sm:text-sm font-bold"
-                  style={{ color: "#f472b6" }}
-                >
+                <span className="quote-author font-mono text-xs sm:text-sm font-bold" style={{ color: "#f472b6" }}>
                   — {currentQuote.author[locale]}
                 </span>
                 {currentQuote.role && (
-                  <span
-                    className="quote-role font-mono text-[11px]"
-                    style={{ color: "rgba(216, 180, 254, 0.85)" }}
-                  >
+                  <span className="quote-role font-mono text-[11px]" style={{ color: "rgba(216, 180, 254, 0.85)" }}>
                     · {currentQuote.role[locale]}
                   </span>
                 )}
@@ -1405,7 +1377,10 @@ export function SeniorDigitalLearning({
               className="quote-refresh-btn group flex items-center gap-1.5 rounded-xl border border-purple-800/40 bg-purple-950/40 px-3 py-1.5 font-mono text-xs text-purple-200 transition-all hover:border-purple-500 hover:text-white hover:bg-purple-900/50"
               title="Next Daily Quote"
             >
-              <ArrowClockwise size={13} className="transition-transform duration-300 group-hover:rotate-180 text-purple-300" />
+              <ArrowClockwise
+                size={13}
+                className="transition-transform duration-300 group-hover:rotate-180 text-purple-300"
+              />
               <span>Next Quote</span>
             </button>
 

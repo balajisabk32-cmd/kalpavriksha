@@ -13,7 +13,7 @@ import { useLocale } from "@/components/locale-provider";
 import { useReadAloud } from "@/components/read-aloud";
 import { useProgress, updateProgress } from "@/components/progress-store";
 import { completeLesson, localDay, XP } from "@/lib/progress";
-import type { CurriculumChapter, CurriculumSubject } from "@/lib/curriculum";
+import type { ChapterRef, CurriculumChapter, SubjectMeta } from "@/lib/curriculum";
 import {
   AstronautBookMascot,
   TigerCubMascot,
@@ -45,7 +45,7 @@ export interface JuniorSceneConfig {
 }
 
 export function resolveJuniorSceneConfig(
-  subject: CurriculumSubject,
+  subject: SubjectMeta,
   chapter: CurriculumChapter
 ): JuniorSceneConfig {
   const subCode = (subject.code || "").toUpperCase();
@@ -853,9 +853,9 @@ export function JuniorCosmicLessonPlayer({
   onSelectChapter,
 }: {
   standard: number;
-  subject: CurriculumSubject | null;
+  subject: SubjectMeta | null;
   chapter: CurriculumChapter | null;
-  allChapters: { subject: CurriculumSubject; chapter: CurriculumChapter }[];
+  allChapters: readonly ChapterRef[];
   onClose: () => void;
   onSelectChapter: (chId: string) => void;
 }) {

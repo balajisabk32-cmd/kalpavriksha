@@ -74,6 +74,25 @@ export type Progress = {
   readonly activities: readonly Activity[];
   /** Local dates (YYYY-MM-DD) on which the student earned anything. */
   readonly activeDays: readonly string[];
+  /** Spaced-review state per practice question id (Daily 5 and the mistake notebook). */
+  readonly review: Readonly<Record<string, ReviewItem>>;
+  /** "Did this help?" votes on Life Link analogy cards: 1 = helped, -1 = didn't. */
+  readonly analogyVotes: Readonly<Record<string, 1 | -1>>;
+};
+
+/**
+ * Leitner box for one practice question. Box 1 comes back tomorrow; each right
+ * answer moves it up a box and further out; a wrong answer sends it back to box 1.
+ */
+export type ReviewItem = {
+  readonly chapterId: string;
+  readonly box: number;
+  /** Local date (YYYY-MM-DD) the question is next due. */
+  readonly due: string;
+  /** How many times the student has got it wrong. */
+  readonly lapses: number;
+  /** Whether the latest answer was right. */
+  readonly lastCorrect: boolean;
 };
 
 export const EMPTY_PROGRESS: Progress = {
@@ -85,9 +104,11 @@ export const EMPTY_PROGRESS: Progress = {
   quizBest: 0,
   activities: [],
   activeDays: [],
+  review: {},
+  analogyVotes: {},
 };
 
-export const XP = { lesson: 20, song: 10, quizCorrect: 10, activity: 15 } as const;
+export const XP = { lesson: 20, song: 10, quizCorrect: 10, activity: 15, reviewCorrect: 5 } as const;
 
 const LEVEL_SPAN = 100;
 
@@ -100,10 +121,15 @@ export function localDay(date = new Date()): string {
   return date.toLocaleDateString("en-CA");
 }
 
-function previousDay(day: string): string {
+/** The local date `n` days after `day` (negative goes back). */
+export function addDays(day: string, n: number): string {
   const d = new Date(`${day}T12:00:00`);
-  d.setDate(d.getDate() - 1);
+  d.setDate(d.getDate() + n);
   return localDay(d);
+}
+
+function previousDay(day: string): string {
+  return addDays(day, -1);
 }
 
 /** Consecutive active days ending today (or yesterday, so the streak survives until the day ends). */
@@ -215,6 +241,80 @@ export function badges(p: Progress, today: string): { id: BadgeId; earned: boole
   ];
 }
 
+// ---------- Spaced review (Daily 5) and the mistake notebook ----------
+
+/** Days until a question in box N (index N-1) comes back. */
+export const REVIEW_INTERVALS = [1, 3, 7, 14, 30] as const;
+export const MAX_BOX = REVIEW_INTERVALS.length;
+/** A question has left the mistake notebook once it climbs to this box. */
+export const MASTERED_BOX = 3;
+export const DAILY_REVIEW_SIZE = 5;
+const MAX_REVIEW_ITEMS = 1500;
+
+/**
+ * Record one answer to a practice question, from a chapter's practice tab or a
+ * review session. New questions enter box 2 when answered right first time (back
+ * in 3 days) or box 1 when wrong (back tomorrow, and into the mistake notebook).
+ * Only review answers (`fromReview`) earn review XP; chapter quizzes earn quiz XP.
+ */
+export function recordAnswer(
+  p: Progress,
+  answer: { questionId: string; chapterId: string; correct: boolean; fromReview?: boolean },
+  today: string,
+): Progress {
+  const prev = p.review[answer.questionId];
+  let box: number;
+  if (!prev) box = answer.correct ? 2 : 1;
+  else box = answer.correct ? Math.min(MAX_BOX, prev.box + 1) : 1;
+
+  const item: ReviewItem = {
+    chapterId: answer.chapterId,
+    box,
+    due: addDays(today, REVIEW_INTERVALS[box - 1] ?? 1),
+    lapses: (prev?.lapses ?? 0) + (answer.correct ? 0 : 1),
+    lastCorrect: answer.correct,
+  };
+
+  let review: Record<string, ReviewItem> = { ...p.review, [answer.questionId]: item };
+  const ids = Object.keys(review);
+  if (ids.length > MAX_REVIEW_ITEMS) {
+    // Drop the best-known questions first so the notebook never loses a mistake.
+    const drop = ids
+      .filter((id) => id !== answer.questionId)
+      .sort((a, b) => review[b]!.box - review[a]!.box || review[b]!.due.localeCompare(review[a]!.due))
+      .slice(0, ids.length - MAX_REVIEW_ITEMS);
+    const dropSet = new Set(drop);
+    review = Object.fromEntries(Object.entries(review).filter(([id]) => !dropSet.has(id)));
+  }
+
+  const xp = answer.fromReview && answer.correct ? p.xp + XP.reviewCorrect : p.xp;
+  return { ...p, xp, review, activeDays: markActive(p, today) };
+}
+
+/** Questions due today or earlier, most overdue and weakest first. */
+export function dueReviews(p: Progress, today: string, limit = DAILY_REVIEW_SIZE): string[] {
+  return Object.entries(p.review)
+    .filter(([, item]) => item.due <= today)
+    .sort(([, a], [, b]) => a.due.localeCompare(b.due) || a.box - b.box)
+    .slice(0, limit)
+    .map(([id]) => id);
+}
+
+/** The mistake notebook: questions answered wrong at least once and not yet mastered. */
+export function mistakes(p: Progress): string[] {
+  return Object.entries(p.review)
+    .filter(([, item]) => item.lapses > 0 && item.box < MASTERED_BOX)
+    .sort(([, a], [, b]) => b.lapses - a.lapses || a.due.localeCompare(b.due))
+    .map(([id]) => id);
+}
+
+export function voteAnalogy(p: Progress, analogyId: string, vote: 1 | -1 | null): Progress {
+  const analogyVotes = { ...p.analogyVotes };
+  if (vote === null) delete analogyVotes[analogyId];
+  else analogyVotes[analogyId] = vote;
+  return { ...p, analogyVotes };
+}
+
 // ---------- Defensive parsing of stored data ----------
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -264,6 +364,29 @@ export function parseProfile(v: unknown): Profile | null {
   };
 }
 
+function parseReview(v: unknown): Record<string, ReviewItem> {
+  if (!isObj(v)) return {};
+  const out: Record<string, ReviewItem> = {};
+  for (const [id, item] of Object.entries(v)) {
+    if (!isObj(item) || !isStr(item.chapterId) || !isStr(item.due)) continue;
+    out[id] = {
+      chapterId: item.chapterId,
+      box: Math.min(MAX_BOX, Math.max(1, Math.round(num(item.box, 1)))),
+      due: item.due,
+      lapses: Math.round(num(item.lapses)),
+      lastCorrect: item.lastCorrect === true,
+    };
+  }
+  return out;
+}
+
+function parseVotes(v: unknown): Record<string, 1 | -1> {
+  if (!isObj(v)) return {};
+  const out: Record<string, 1 | -1> = {};
+  for (const [id, vote] of Object.entries(v)) if (vote === 1 || vote === -1) out[id] = vote;
+  return out;
+}
+
 export function parseProgress(raw: unknown): Progress {
   if (!isObj(raw) || raw.version !== 1) return EMPTY_PROGRESS;
   return {
@@ -277,5 +400,7 @@ export function parseProgress(raw: unknown): Progress {
       ? raw.activities.map(parseActivity).filter((a): a is Activity => a !== null)
       : [],
     activeDays: strings(raw.activeDays),
+    review: parseReview(raw.review),
+    analogyVotes: parseVotes(raw.analogyVotes),
   };
 }

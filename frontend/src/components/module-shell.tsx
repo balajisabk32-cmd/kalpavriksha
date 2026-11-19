@@ -3,7 +3,7 @@
 import { ArrowLeft, Fire, IdentificationCard } from "@phosphor-icons/react/ssr";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Avatar } from "@/components/avatar";
 import { BrandMark } from "@/components/brand-mark";
 import { ChromeWaves } from "@/components/landing/chrome-waves";
@@ -11,12 +11,12 @@ import { LivingTree } from "@/components/landing/living-tree";
 import { CosmicParticleLayer } from "@/components/cosmic-particle-layer";
 import { LangSelect } from "@/components/landing/lang-select";
 import { useLocale } from "@/components/locale-provider";
-import { GrowthStage, LearnerSetup, useHydrated } from "@/components/learner-setup";
+import { useHydrated } from "@/components/learner-setup";
+import { useSessionUser } from "@/components/session-user";
 import { useProgress } from "@/components/progress-store";
 import { SoundToggle } from "@/components/sound-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BAND_INFO } from "@/lib/bands";
-import { authService } from "@/lib/auth-service";
 import { bandOf, localDay, streak, type Band, type Profile } from "@/lib/progress";
 import { MODULES, type KalpaModule } from "@/modules/registry";
 import { accentOf } from "@/modules/accents";
@@ -40,8 +40,8 @@ function ProgressPill() {
         </span>
       )}
       <Link
-        href="/sign-in"
-        aria-label={progress.profile ? `${t.myCard}: ${progress.profile.name}` : t.makeCard}
+        href="/me"
+        aria-label={progress.profile ? `${t.myCard}: ${progress.profile.name}` : t.myCard}
         className="grid size-11 place-items-center rounded-xl border border-line bg-white/[0.04] transition-colors duration-200 hover:bg-white/[0.1]"
       >
         {progress.profile ? (
@@ -74,9 +74,7 @@ export function ModuleShell({
   const profile = progress.profile;
   const band = profile ? bandOf(profile.grade) : null;
 
-  useEffect(() => {
-    authService.syncWithServer();
-  }, []);
+  const session = useSessionUser();
 
   return (
     <div
@@ -113,7 +111,7 @@ export function ModuleShell({
       <CosmicParticleLayer moduleSlug={module.slug} />
 
       {/* Main Full-Screen Content Layer */}
-      <div className={`relative z-10 flex min-h-[100dvh] w-full flex-col ${module.slug === "learn" ? "px-3 py-3 sm:px-6 sm:py-5 md:px-8 lg:px-10" : "px-4 py-4 sm:px-6 sm:py-6 md:px-8 lg:px-10 xl:px-14"}`}>
+      <div data-shell-content className={`relative z-10 flex min-h-[100dvh] w-full flex-col ${module.slug === "learn" ? "px-3 py-3 sm:px-6 sm:py-5 md:px-8 lg:px-10" : "px-4 py-4 sm:px-6 sm:py-6 md:px-8 lg:px-10 xl:px-14"}`}>
         {/* 1. Header: Back to home, module switcher tabs, XP pill & language selector */}
         {(!profile || module.slug !== "learn") && (
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-200/60 dark:border-white/[0.08] pb-4 sm:pb-5">
@@ -192,14 +190,21 @@ export function ModuleShell({
 
         {/* 3. Main Content: Full Screen Width across all modules */}
         <main className={`${module.slug === "learn" ? "mt-2 sm:mt-3" : "mt-8 sm:mt-10"} flex-1 w-full pb-8 sm:pb-12`}>
-          {!hydrated ? (
-            <div aria-hidden className="h-72 animate-pulse rounded-3xl border border-line bg-surface/60" />
-          ) : profile && band ? (
+          {session.status === "error" ? (
+            <div role="alert" className="mx-auto flex max-w-md flex-col items-center gap-4 rounded-3xl border border-line bg-surface p-6 text-center">
+              <p className="text-sm">{t.sessionError}</p>
+              <button
+                type="button"
+                onClick={session.retry}
+                className="min-h-11 rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet"
+              >
+                {t.retry}
+              </button>
+            </div>
+          ) : hydrated && session.status === "ready" && profile && band ? (
             children(band, profile)
           ) : (
-            <div className="mx-auto max-w-4xl rounded-[28px] border border-line bg-surface/80 p-5 backdrop-blur-sm sm:p-10">
-              <LearnerSetup redirectTo={module.slug === "learn" ? "/m/learn" : undefined} />
-            </div>
+            <div role="status" aria-label={t.loading} className="h-72 animate-pulse rounded-3xl border border-line bg-surface/60 motion-reduce:animate-none" />
           )}
         </main>
       </div>

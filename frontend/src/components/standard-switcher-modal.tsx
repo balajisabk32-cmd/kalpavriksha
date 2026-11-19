@@ -3,11 +3,7 @@
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, X } from "@phosphor-icons/react/ssr";
 import { useLocale } from "@/components/locale-provider";
-import {
-  getSeniorGroup,
-  SENIOR_GROUPS,
-  type SeniorGroupId,
-} from "@/lib/curriculum";
+import { getSeniorGroup, SENIOR_GROUPS, type SeniorGroupId } from "@/lib/curriculum";
 
 interface StandardSwitcherModalProps {
   currentGrade: number;
@@ -25,13 +21,10 @@ function StandardSwitcherDialog({
 }: Omit<StandardSwitcherModalProps, "isOpen">) {
   const { locale } = useLocale();
 
-  const validGroup: SeniorGroupId =
-    (currentSeniorGroup && getSeniorGroup(currentSeniorGroup)?.id) || "cs";
+  const validGroup: SeniorGroupId = (currentSeniorGroup && getSeniorGroup(currentSeniorGroup)?.id) || "cs";
 
   const [step, setStep] = useState<"standards" | "group">("standards");
-  const [pendingGrade, setPendingGrade] = useState<number>(
-    currentGrade >= 11 ? currentGrade : 11,
-  );
+  const [pendingGrade, setPendingGrade] = useState<number>(currentGrade >= 11 ? currentGrade : 11);
   const [chosenGroup, setChosenGroup] = useState<SeniorGroupId>(validGroup);
 
   const handleSelectJuniorStandard = (std: number) => {
@@ -71,8 +64,8 @@ function StandardSwitcherDialog({
                 </h3>
                 <p className="mt-1 text-xs text-muted">
                   {locale === "ta"
-                    ? "வகுப்பு 1 முதல் 12 வரையிலான தமிழ்நாடு சமச்சீர் கல்வி பாடத்திட்டம்."
-                    : "Tamil Nadu Samacheer Kalvi K-12 Curriculum (Class 1 to 12)."}
+                    ? "வகுப்பு 4 முதல் 12 வரையிலான தமிழ்நாடு சமச்சீர் கல்வி பாடத்திட்டம்."
+                    : "Tamil Nadu Samacheer Kalvi curriculum, Class 4 to 12."}
                 </p>
               </div>
               <button
@@ -86,34 +79,7 @@ function StandardSwitcherDialog({
             </div>
 
             <div className="mt-6 flex flex-col gap-5">
-              {/* 1. Seed (Class 1-3) */}
-              <div>
-                <div className="flex items-center gap-2 mb-2 font-mono text-xs text-amber">
-                  <span className="size-2 rounded-full bg-amber" />
-                  <span>Seed (விதை / ஆரம்ப நிலை) · Class 1–3</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[1, 2, 3].map((std) => {
-                    const isSelected = std === currentGrade;
-                    return (
-                      <button
-                        key={std}
-                        type="button"
-                        onClick={() => handleSelectJuniorStandard(std)}
-                        className={`flex flex-col items-center justify-center rounded-2xl border p-3 transition-all ${
-                          isSelected
-                            ? "border-amber bg-amber/20 text-amber shadow-[0_0_20px_-5px_var(--amber)]"
-                            : "border-line bg-surface-2 hover:border-line-strong hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        <span className="font-mono text-[10px] text-muted">Class</span>
-                        <span className="font-display text-xl font-bold">{std}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
+              {/* Classes 1–3 are hidden for now (docs/platform-build-plan.md §1). */}
               {/* 2. Plant (Class 4-10) */}
               <div>
                 <div className="flex items-center gap-2 mb-2 font-mono text-xs text-violet">
@@ -280,9 +246,7 @@ function StandardSwitcherDialog({
                         <span className="rounded-lg border border-[var(--grp-accent)]/40 bg-[var(--grp-accent)]/15 px-2.5 py-1 font-mono text-[11px] font-bold text-[var(--grp-accent)]">
                           {grp.badge}
                         </span>
-                        <span className="font-mono text-[11px] text-muted">
-                          {grp.code}
-                        </span>
+                        <span className="font-mono text-[11px] text-muted">{grp.code}</span>
                       </div>
                       <span
                         className={`grid size-5 shrink-0 place-items-center rounded-full border transition-colors ${
@@ -295,13 +259,9 @@ function StandardSwitcherDialog({
                       </span>
                     </div>
 
-                    <h4 className="font-display text-base font-bold text-text mt-2">
-                      {grp.name[locale]}
-                    </h4>
+                    <h4 className="font-display text-base font-bold text-text mt-2">{grp.name[locale]}</h4>
 
-                    <p className="mt-1 text-xs text-muted leading-relaxed">
-                      {grp.description[locale]}
-                    </p>
+                    <p className="mt-1 text-xs text-muted leading-relaxed">{grp.description[locale]}</p>
 
                     {/* Electives Chips */}
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-line/60">

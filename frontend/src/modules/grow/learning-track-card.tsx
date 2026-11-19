@@ -25,7 +25,8 @@ export function LearningTrackCard({
 }: {
   stats: LearningTrackStats;
   band: Band;
-  onOpenStandardSwitcher: () => void;
+  /** Omitted for students: their class is set by the admin. */
+  onOpenStandardSwitcher?: () => void;
 }) {
   const { locale } = useLocale();
   const c = GROW_COPY[locale];
@@ -52,20 +53,25 @@ export function LearningTrackCard({
               {c.learningTrackTitle}
             </h2>
           </div>
-          <p className="mt-1 text-[13px] leading-relaxed text-muted max-w-2xl">
-            {c.learningTrackSubtitle}
-          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted max-w-2xl">{c.learningTrackSubtitle}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenStandardSwitcher}
-          className="inline-flex self-start items-center gap-2 rounded-full border border-violet/40 bg-violet-deep/40 px-4 py-2 font-mono text-xs text-violet-ink transition-all hover:border-violet hover:bg-violet-deep/60 sm:self-auto"
-        >
-          <span className="size-2 rounded-full bg-violet" />
-          <span>{c.standardLabel(stats.standard)}</span>
-          <span className="text-[11px] underline opacity-80 ml-1">{c.changeStandard}</span>
-        </button>
+        {onOpenStandardSwitcher ? (
+          <button
+            type="button"
+            onClick={onOpenStandardSwitcher}
+            className="inline-flex self-start items-center gap-2 rounded-full border border-violet/40 bg-violet-deep/40 px-4 py-2 font-mono text-xs text-violet-ink transition-all hover:border-violet hover:bg-violet-deep/60 sm:self-auto"
+          >
+            <span className="size-2 rounded-full bg-violet" />
+            <span>{c.standardLabel(stats.standard)}</span>
+            <span className="text-[11px] underline opacity-80 ml-1">{c.changeStandard}</span>
+          </button>
+        ) : (
+          <span className="inline-flex self-start items-center gap-2 rounded-full border border-violet/40 bg-violet-deep/40 px-4 py-2 font-mono text-xs text-violet-ink sm:self-auto">
+            <span className="size-2 rounded-full bg-violet" />
+            <span>{c.standardLabel(stats.standard)}</span>
+          </span>
+        )}
       </div>
 
       {/* 4 Key Metrics Cards */}
@@ -73,17 +79,13 @@ export function LearningTrackCard({
         {/* Metric 1: Curriculum Completion */}
         <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface-2 p-4">
           <div className="flex items-center justify-between text-muted">
-            <span className="font-mono text-[11px] uppercase tracking-wider">
-              {c.curriculumMastery}
-            </span>
+            <span className="font-mono text-[11px] uppercase tracking-wider">{c.curriculumMastery}</span>
             <Trophy size={16} className="text-amber" />
           </div>
           <div className="mt-2">
             <p className="font-display text-2xl font-bold">
               {stats.completedChaptersInStandard}
-              <span className="font-mono text-xs text-muted font-normal">
-                /{stats.totalChaptersInStandard}
-              </span>
+              <span className="font-mono text-xs text-muted font-normal">/{stats.totalChaptersInStandard}</span>
             </p>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
               <div
@@ -100,9 +102,7 @@ export function LearningTrackCard({
         {/* Metric 2: Total Lessons Mastered & Level */}
         <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface-2 p-4">
           <div className="flex items-center justify-between text-muted">
-            <span className="font-mono text-[11px] uppercase tracking-wider">
-              {c.lessonsMastered}
-            </span>
+            <span className="font-mono text-[11px] uppercase tracking-wider">{c.lessonsMastered}</span>
             <CheckCircle size={16} className="text-emerald" />
           </div>
           <div className="mt-2">
@@ -128,15 +128,11 @@ export function LearningTrackCard({
         {/* Metric 3: Quiz High Score */}
         <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface-2 p-4">
           <div className="flex items-center justify-between text-muted">
-            <span className="font-mono text-[11px] uppercase tracking-wider">
-              {c.quizPerformance}
-            </span>
+            <span className="font-mono text-[11px] uppercase tracking-wider">{c.quizPerformance}</span>
             <Lightning size={16} className="text-yellow-400" />
           </div>
           <div className="mt-2">
-            <p className="font-display text-2xl font-bold">
-              {stats.quizBest}%
-            </p>
+            <p className="font-display text-2xl font-bold">{stats.quizBest}%</p>
             <p className="mt-2 text-[11.5px] text-muted">
               {stats.quizBest >= 80 ? (
                 <span className="text-amber font-mono">★ Quiz Star Active</span>
@@ -150,9 +146,7 @@ export function LearningTrackCard({
         {/* Metric 4: Study Streak */}
         <div className="flex flex-col justify-between rounded-2xl border border-line bg-surface-2 p-4">
           <div className="flex items-center justify-between text-muted">
-            <span className="font-mono text-[11px] uppercase tracking-wider">
-              {c.studyStreak}
-            </span>
+            <span className="font-mono text-[11px] uppercase tracking-wider">{c.studyStreak}</span>
             <Fire size={16} className="text-orange-400" />
           </div>
           <div className="mt-2">
@@ -211,13 +205,8 @@ export function LearningTrackCard({
       {/* Subject-Wise Mastery Breakdown */}
       <div className="relative mt-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-display text-base font-semibold tracking-tight">
-            {c.subjectProgress}
-          </h3>
-          <Link
-            href="/m/learn"
-            className="flex items-center gap-1 font-mono text-[11.5px] text-violet hover:underline"
-          >
+          <h3 className="font-display text-base font-semibold tracking-tight">{c.subjectProgress}</h3>
+          <Link href="/m/learn" className="flex items-center gap-1 font-mono text-[11.5px] text-violet hover:underline">
             <span>{c.viewInModule1}</span>
             <ArrowSquareOut size={13} />
           </Link>
@@ -277,10 +266,8 @@ export function LearningTrackCard({
       {/* Holistic Synergy Note */}
       <div className="relative mt-6 flex items-start gap-3 rounded-2xl border border-line bg-white/[0.02] p-4 text-[12.5px] text-muted">
         <Sparkle size={18} weight="fill" className="text-violet shrink-0 mt-0.5" />
-        <p className="leading-relaxed">
-          {c.academicsContributionHint}
-        </p>
+        <p className="leading-relaxed">{c.academicsContributionHint}</p>
       </div>
-      </LiquidGlassSurface>
+    </LiquidGlassSurface>
   );
 }

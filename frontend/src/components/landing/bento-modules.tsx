@@ -10,11 +10,8 @@ import { MODULES } from "@/modules/registry";
 import { LiquidGlassSurface } from "@/components/liquid-glass-surface";
 import { accentOf } from "@/modules/accents";
 
-interface BentoModulesProps {
-  scrollProgress?: number;
-}
 
-export function BentoModules({ scrollProgress = 0 }: BentoModulesProps) {
+export function BentoModules() {
   const { t, locale } = useLocale();
 
   const m1 = MODULES[0]!; // Digital Learning (01)
@@ -31,8 +28,9 @@ export function BentoModules({ scrollProgress = 0 }: BentoModulesProps) {
       <div 
         className="mb-14 grid items-end gap-6 lg:mb-20 lg:grid-cols-[1.1fr_0.9fr]"
         style={{
-          opacity: Math.min(scrollProgress * 2, 1),
-          transform: `translateY(${Math.max(0, 30 - scrollProgress * 60)}px)`,
+          // --sp (0..1) comes from the landing page's scroll handler on the parent section.
+          opacity: "clamp(0, calc(var(--sp, 0) * 2), 1)",
+          transform: "translateY(max(0px, calc(30px - var(--sp, 0) * 60px)))",
         }}
       >
         <RevealWords
@@ -52,11 +50,6 @@ export function BentoModules({ scrollProgress = 0 }: BentoModulesProps) {
         <div
           data-reveal="up"
           className="relative w-full overflow-visible rounded-3xl transition-transform duration-300 hover:-translate-y-1"
-          style={{
-            opacity: Math.min(Math.max(0, scrollProgress * 1.5 - 0.2), 1),
-            transform: `translateY(${Math.max(0, 40 - scrollProgress * 80)}px)`,
-            transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
-          }}
         >
           {/* Animated Neon Border */}
           <div className="neon-border-frame pointer-events-none absolute inset-0 z-20 overflow-visible">
@@ -137,11 +130,6 @@ export function BentoModules({ scrollProgress = 0 }: BentoModulesProps) {
         <div
           data-reveal="up"
           className="relative w-full overflow-visible rounded-3xl transition-transform duration-300 hover:-translate-y-1"
-          style={{
-            opacity: Math.min(Math.max(0, scrollProgress * 1.5 - 0.3), 1),
-            transform: `translateY(${Math.max(0, 50 - scrollProgress * 100)}px)`,
-            transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
-          }}
         >
           {/* Animated Neon Border */}
           <div className="neon-border-frame pointer-events-none absolute inset-0 z-20 overflow-visible">
@@ -261,11 +249,6 @@ export function BentoModules({ scrollProgress = 0 }: BentoModulesProps) {
         <div
           data-reveal="up"
           className="relative w-full overflow-visible rounded-3xl transition-transform duration-300 hover:-translate-y-1"
-          style={{
-            opacity: Math.min(Math.max(0, scrollProgress * 1.5 - 0.4), 1),
-            transform: `translateY(${Math.max(0, 60 - scrollProgress * 120)}px)`,
-            transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
-          }}
         >
           {/* Animated Neon Border */}
           <div className="neon-border-frame pointer-events-none absolute inset-0 z-20 overflow-visible">

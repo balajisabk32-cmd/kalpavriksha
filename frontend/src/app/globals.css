@@ -738,37 +738,40 @@ body {
   color: #fff;
 }
 
-/* Dynamic chromatic nebula shifts for living ambient background */
+/* Dynamic chromatic nebula shifts for living ambient background.
+ * Transform and opacity only: the GPU can move these huge (80–90vmax) layers
+ * without repainting them. Animating `filter: hue-rotate` here forced a full
+ * repaint of every blob on every frame and dropped open chapters to a few fps. */
 @keyframes aurora-shift-1 {
   0%, 100% {
     transform: translate3d(0, 0, 0) scale(1);
-    filter: hue-rotate(0deg);
+    opacity: 1;
   }
   50% {
     transform: translate3d(-5vmax, 4vmax, 0) scale(1.12);
-    filter: hue-rotate(42deg);
+    opacity: 0.8;
   }
 }
 
 @keyframes aurora-shift-2 {
   0%, 100% {
     transform: translate3d(0, 0, 0) scale(1);
-    filter: hue-rotate(0deg);
+    opacity: 0.85;
   }
   50% {
     transform: translate3d(4vmax, -4vmax, 0) scale(1.15);
-    filter: hue-rotate(-45deg);
+    opacity: 1;
   }
 }
 
 @keyframes aurora-shift-3 {
   0%, 100% {
     transform: translate3d(0, 0, 0) scale(1);
-    filter: hue-rotate(0deg);
+    opacity: 1;
   }
   50% {
     transform: translate3d(-3vmax, -3vmax, 0) scale(1.08);
-    filter: hue-rotate(55deg);
+    opacity: 0.78;
   }
 }
 
@@ -814,6 +817,15 @@ html[data-calm="true"] .leaf,
 html[data-calm="true"] .learner-card {
   animation: none !important;
 }
+
+/* A full-screen overlay (the chapter classroom) is open: it shows the module
+ * background through itself, so hide the page content underneath instead of
+ * painting a second copy of every animated background layer. */
+html[data-overlay="open"] [data-shell-content] {
+  visibility: hidden;
+}
+/* The overlay itself is rendered inside the shell content, so it opts back in
+ * (`visibility: visible` on a child overrides a hidden parent). */
 
 /* Projector comfort switch: higher contrast on washed-out school beams. */
 html[data-projector="true"] {
@@ -1229,4 +1241,16 @@ html {
 .light .module-hero-title {
   color: #110826 !important;
   text-shadow: 0 2px 14px rgba(124, 58, 237, 0.25);
+}
+
+/* Printing login slips: only the slips, black on white. */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  html:has([data-print-slips]) main > :not([data-print-slips]):not(:has([data-print-slips])) {
+    display: none !important;
+  }
 }

@@ -22,22 +22,22 @@ import { useLocale } from "@/components/locale-provider";
 import { BrandMark } from "@/components/brand-mark";
 import { SoundToggle } from "@/components/sound-toggle";
 import { LangSelect } from "@/components/landing/lang-select";
-import type { CurriculumChapter, CurriculumSubject } from "@/lib/curriculum";
+import type { ChapterOutline, SubjectOutline } from "@/lib/curriculum";
 import { MODULES } from "@/modules/registry";
 import { accentOf } from "@/modules/accents";
 
 interface JuniorSuperAdventureProps {
   currentStandard: number;
-  subjects: readonly CurriculumSubject[];
-  allFlatChapters: Array<{ subject: CurriculumSubject; chapter: CurriculumChapter }>;
+  subjects: readonly SubjectOutline[];
+  allFlatChapters: Array<{ subject: SubjectOutline; chapter: ChapterOutline }>;
   filter: string;
   setFilter: (f: string) => void;
   onOpenChapter: (chapterId: string) => void;
   onOpenStandardSwitcher: () => void;
   onSelectStandard?: (std: number) => void;
   continueRecord: {
-    subject: CurriculumSubject;
-    chapter: CurriculumChapter;
+    subject: SubjectOutline;
+    chapter: ChapterOutline;
     isStarter: boolean;
   } | null;
   totalChapters: number;
@@ -100,7 +100,7 @@ export function JuniorSuperAdventure({
     }
   };
 
-  const handleSelectSubject = (sub?: CurriculumSubject) => {
+  const handleSelectSubject = (sub?: SubjectOutline) => {
     if (sub) {
       setActiveSubject(sub.id === activeSubject ? "all" : sub.id);
     }

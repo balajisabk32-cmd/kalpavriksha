@@ -43,3 +43,7 @@ next-env.d.ts
 
 # local runtime profile mock
 .profile-store.json
+
+# local embedded database (PGlite)
+/.data/
+!.env.example

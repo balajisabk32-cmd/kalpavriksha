@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { BentoModules } from "@/components/landing/bento-modules";
 import { ChromeWaves } from "@/components/landing/chrome-waves";
 import { CtaFooter } from "@/components/landing/cta-footer";
@@ -12,18 +12,11 @@ import { ScrollFx } from "@/components/scroll-fx";
 import { AmbientDepthLayers } from "@/components/landing/ambient-layers";
 
 export default function Home() {
-  const [scrollProgress, setScrollProgress] = useState({
-    hero: 0,
-    modules: 0,
-    identity: 0,
-    footer: 0,
-    global: 0,
-  });
-
   const heroRef = useRef<HTMLElement>(null);
   const modulesRef = useRef<HTMLElement>(null);
   const identityRef = useRef<HTMLElement>(null);
   const footerRef = useRef<HTMLElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const calculateProgress = () => {
@@ -33,19 +26,20 @@ export default function Home() {
       const maxScroll = docHeight - viewportHeight;
       const globalProgress = Math.min(scrollY / maxScroll, 1);
 
-      const refs = { hero: heroRef, modules: modulesRef, identity: identityRef, footer: footerRef };
-      Object.entries(refs).forEach(([key, ref]) => {
+      for (const ref of [heroRef, modulesRef, identityRef, footerRef]) {
         const el = ref.current;
-        if (!el) return;
+        if (!el) continue;
         const rect = el.getBoundingClientRect();
         const sectionHeight = rect.height;
         const viewportCenter = viewportHeight / 2;
         const distanceFromCenter = rect.top + sectionHeight / 2 - viewportCenter;
         const progress = 1 - Math.abs(distanceFromCenter) / (viewportHeight / 2 + sectionHeight / 2);
-        setScrollProgress(prev => ({ ...prev, [key]: Math.max(0, Math.min(1, progress)) }));
-      });
+        // Written straight to the section as a CSS variable: children read
+        // var(--sp) in their styles, so scrolling never re-renders React.
+        el.style.setProperty("--sp", Math.max(0, Math.min(1, progress)).toFixed(3));
+      }
 
-      setScrollProgress(prev => ({ ...prev, global: globalProgress }));
+      if (barRef.current) barRef.current.style.transform = `scaleX(${globalProgress})`;
     };
 
     let ticking = false;
@@ -63,11 +57,6 @@ export default function Home() {
     calculateProgress();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Apply global progress to CSS custom property for color narrative
-  useEffect(() => {
-    document.documentElement.style.setProperty("--scroll-progress", scrollProgress.global.toString());
-  }, [scrollProgress.global]);
 
   return (
     <>
@@ -94,12 +83,12 @@ export default function Home() {
         
         {/* Hero with scroll progress */}
         <section ref={heroRef} id="hero" className="relative">
-          <Hero scrollProgress={scrollProgress.hero} />
+          <Hero />
         </section>
 
         {/* BentoModules with scroll progress */}
         <section ref={modulesRef} id="modules" className="relative">
-          <BentoModules scrollProgress={scrollProgress.modules} />
+          <BentoModules />
         </section>
 
         {/* Kolam Divider */}
@@ -107,17 +96,18 @@ export default function Home() {
 
         {/* Identity Section with scroll progress */}
         <section ref={identityRef} id="identity" className="relative">
-          <IdentitySection scrollProgress={scrollProgress.identity} />
+          <IdentitySection />
         </section>
 
         {/* Footer with scroll progress */}
         <section ref={footerRef} id="footer" className="relative">
-          <CtaFooter scrollProgress={scrollProgress.footer} />
+          <CtaFooter />
         </section>
       </main>
 
       {/* Global scroll progress indicator */}
       <div
+        ref={barRef}
         aria-hidden
         className="fixed top-0 left-0 h-0.5 w-full z-[100] pointer-events-none"
         style={{
@@ -127,16 +117,12 @@ export default function Home() {
             #2dd4bf 66%, 
             #fbbf24 100%
           )`,
-          transform: `scaleX(${scrollProgress.global})`,
+          transform: "scaleX(0)",
           transformOrigin: "left center",
-          transition: "transform 0.1s linear",
         }}
       />
 
       <style jsx global>{`
-        :root {
-          --scroll-progress: 0;
-        }
 
         /* Scroll-driven color narrative - accent shifts as you scroll */
         html {

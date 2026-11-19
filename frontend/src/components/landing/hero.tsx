@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowsClockwise, DotsNine } from "@phosphor-icons/react/ssr";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
 
 import { useLocale } from "@/components/locale-provider";
@@ -36,11 +36,8 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-interface HeroProps {
-  scrollProgress?: number;
-}
 
-export function Hero({ scrollProgress = 0 }: HeroProps) {
+export function Hero() {
   const { t, locale } = useLocale();
   const { isDark } = useTheme();
   const [introDone, setIntroDone] = useState(false);
@@ -48,7 +45,8 @@ export function Hero({ scrollProgress = 0 }: HeroProps) {
   const [hovering, setHovering] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  // Mouse parallax writes CSS variables on this element: no re-render per mouse move.
+  const heroRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const id = window.setTimeout(() => setIntroDone(true), prefersReducedMotion() ? 0 : INTRO_MS);
@@ -80,14 +78,17 @@ export function Hero({ scrollProgress = 0 }: HeroProps) {
 
   // Mouse parallax for depth
   const handleMouseMove = (e: React.MouseEvent) => {
-    setMousePos({
-      x: (e.clientX / window.innerWidth) * 100,
-      y: (e.clientY / window.innerHeight) * 100,
-    });
+    const el = heroRef.current;
+    if (!el) return;
+    el.style.setProperty("--mx", `${((e.clientX / window.innerWidth) * 100).toFixed(1)}%`);
+    el.style.setProperty("--my", `${((e.clientY / window.innerHeight) * 100).toFixed(1)}%`);
+    el.style.setProperty("--mx2", `${(100 - (e.clientX / window.innerWidth) * 100).toFixed(1)}%`);
+    el.style.setProperty("--my2", `${(100 - (e.clientY / window.innerHeight) * 100).toFixed(1)}%`);
   };
 
   return (
     <section
+      ref={heroRef}
       data-hero
       onMouseMove={handleMouseMove}
       className="relative isolate flex min-h-[100dvh] h-[100dvh] w-full items-center justify-center overflow-hidden p-0"
@@ -97,12 +98,12 @@ export function Hero({ scrollProgress = 0 }: HeroProps) {
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
-          transform: `translate3d(0, ${scrollProgress * -50}px, ${scrollProgress * -100}px) scale(${1 + scrollProgress * 0.1})`,
-          opacity: 1 - scrollProgress * 0.2,
-          transition: "none",
+          // --sp (0..1) is set on the parent section by the landing page's scroll handler.
+          transform: "translate3d(0, calc(var(--sp, 0) * -50px), 0) scale(calc(1 + var(--sp, 0) * 0.1))",
+          opacity: "calc(1 - var(--sp, 0) * 0.2)",
           background: `
-            radial-gradient(ellipse at ${mousePos.x}% ${mousePos.y}%, rgba(168,85,247,${0.08 * (1 - scrollProgress)}) 0%, transparent 50%),
-            radial-gradient(ellipse at ${100 - mousePos.x}% ${100 - mousePos.y}%, rgba(45,212,191,${0.05 * (1 - scrollProgress)}) 0%, transparent 50%)
+            radial-gradient(ellipse at var(--mx, 50%) var(--my, 50%), rgb(168 85 247 / calc(0.08 * (1 - var(--sp, 0)))) 0%, transparent 50%),
+            radial-gradient(ellipse at var(--mx2, 50%) var(--my2, 50%), rgb(45 212 191 / calc(0.05 * (1 - var(--sp, 0)))) 0%, transparent 50%)
           `,
         }}
       />

@@ -10,11 +10,8 @@ import { WarpText } from "@/components/warp-text";
 import { useTheme } from "@/lib/theme";
 import { StandingPenguin } from "./standing-penguin";
 
-interface CtaFooterProps {
-  scrollProgress?: number;
-}
 
-export function CtaFooter({ scrollProgress = 0 }: CtaFooterProps) {
+export function CtaFooter() {
   const { t } = useLocale();
   const { isDark } = useTheme();
   const firstModule = "/m/learn";
@@ -23,9 +20,9 @@ export function CtaFooter({ scrollProgress = 0 }: CtaFooterProps) {
     <footer 
       className="relative mt-8 overflow-hidden border-t border-line sm:mt-10 lg:mt-14"
       style={{
-        opacity: Math.min(scrollProgress * 2, 1),
-        transform: `translateY(${Math.max(0, 20 - scrollProgress * 40)}px)`,
-        transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
+        // --sp (0..1) comes from the landing page's scroll handler on the parent section.
+        opacity: "clamp(0, calc(var(--sp, 0) * 2), 1)",
+        transform: "translateY(max(0px, calc(20px - var(--sp, 0) * 40px)))",
       }}
     >
       <div
