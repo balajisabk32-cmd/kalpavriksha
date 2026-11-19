@@ -18,7 +18,8 @@ const MIGRATIONS = path.join(process.cwd(), "drizzle");
 export async function createDatabase(opts: { url?: string; dataDir: string }): Promise<Database> {
   if (opts.url) {
     const { Pool } = await import("pg");
-    const pool = new Pool({ connectionString: opts.url, max: 5 });
+    // Keep connections open between requests: opening one to the database costs several round trips.
+    const pool = new Pool({ connectionString: opts.url, max: 5, idleTimeoutMillis: 60_000 });
     return drizzlePg(pool, { schema });
   }
 
