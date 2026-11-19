@@ -213,3 +213,29 @@ npm run dev
 3. Nothing to change in the build settings: Vercel runs the `vercel-build` script automatically (applies migrations, then builds).
 4. Create the first admin from your computer: `DATABASE_URL=… npm run admin:create -- --username office --name "Kalpavriksha Office"`. It prints the password once.
 5. Add the trust's domain in Vercel → Domains.
+
+### Phase 2 — Content import: built 2026-11-19 (cloud storage left for later)
+
+| Piece | Where |
+| --- | --- |
+| Tables: content units (a textbook unit from the team's sheet, linked to an app chapter), videos, textbooks, chapter page ranges | `src/server/db/schema.ts`, migration `drizzle/0001_content.sql` |
+| Sheet reader: the Class 4 "rows" layout and the Class 9/12 "sections" layout, English/Tamil medium sheets, parts, Q&A videos, links hidden behind "▶ Watch" | `src/server/video-import.ts`, `src/server/youtube.ts` |
+| Linking units to chapters: chapter number → title → position in the term; links set by hand survive re-imports | `src/server/content-match.ts`, `src/server/content.ts` |
+| Admin → Videos & textbooks: coverage per class, import with a check step, per-subject page (relink units, add/remove videos, upload PDFs, pages per chapter) | `src/app/admin/content/`, `src/modules/staff/content.tsx` |
+| Textbook PDFs: upload (admins) and download with byte ranges (signed-in users) | `src/app/api/admin/textbooks/`, `src/app/api/textbooks/[id]/` |
+| Command-line import | `npm run content:import -- <file.xlsx> …` |
+| What a lesson shows (for Phase 3): `chapterMedia(chapterId, medium)` — videos in the student's medium first, whole-subject playlists, textbook pages | `src/server/content.ts` |
+
+**Why units, not chapters.** The app's chapter list is shorter than the textbook (Class 4: 2 chapters per term; the book has 3–9 units per term). Videos are stored by the book's unit and each unit points at an app chapter, so several units can share one. Units placed only by their position in the term are marked **Check** for a person to confirm.
+
+**The three sheets, imported locally:**
+
+| Sheet | Units | Videos | To check | Not imported |
+| --- | --- | --- | --- | --- |
+| Class 4 (English + Tamil medium) | 109 | 241 | 66 | 1 — row 91 "Save Wisely (Story)": the link is cut short (`watch?v=vyS7hGeu`) |
+| Class 9 | 5 (one per subject) | 4 | 0 | 3 channel search links (Maths, Science, Social) |
+| Class 12 | 60 | 60 | 12 | 4 channel search links (Chemistry, Physics) |
+
+Also for the team: Class 9 Maths and Science point to the same playlist; Class 12 Commerce lists 28 chapters but the app has 16.
+
+**Left for later (server wiring):** textbook files are stored in `frontend/.data/files`. On Vercel the disk is temporary and uploads are capped at 4.5 MB, so before going live `src/server/storage.ts` gets a Cloudflare R2 version and the browser uploads straight to R2.

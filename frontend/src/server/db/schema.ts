@@ -5,7 +5,7 @@
  * After changing this file run `npm run db:generate` to write a migration.
  */
 import { sql } from "drizzle-orm";
-import { check, index, integer, jsonb, pgTable, serial, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, check, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const ROLES = ["admin", "teacher", "student"] as const;
 export type Role = (typeof ROLES)[number];
@@ -111,3 +111,97 @@ export const promotionRuns = pgTable("promotion_runs", {
   graduated: integer("graduated").notNull(),
   byUserId: uuid("by_user_id").references(() => users.id, { onDelete: "set null" }),
 });
+
+// ---------------------------------------------------------------------------
+// Content (Phase 2): videos by textbook unit, textbooks and chapter page ranges.
+// ---------------------------------------------------------------------------
+
+export const UNIT_MATCHES = ["title", "number", "order", "manual", "subject"] as const;
+export type UnitMatch = (typeof UNIT_MATCHES)[number];
+
+/**
+ * A unit of the textbook as the content team lists it (Term 1 · Unit 2 · "Matter and Materials").
+ * `chapterId` links it to an app chapter (curriculum-data.ts); `match` says how that link was made.
+ * `unitNo` null = videos for the whole subject (e.g. one playlist for every chapter).
+ */
+export const contentUnits = pgTable(
+  "content_units",
+  {
+    id: serial("id").primaryKey(),
+    standard: smallint("standard").notNull(),
+    subjectId: text("subject_id").notNull(),
+    medium: text("medium", { enum: MEDIUMS }).notNull(),
+    term: smallint("term"),
+    unitNo: smallint("unit_no"),
+    title: text("title").notNull(),
+    chapterId: text("chapter_id"),
+    match: text("match", { enum: UNIT_MATCHES }),
+    source: text("source"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("content_units_key").on(t.standard, t.subjectId, t.medium, t.term, t.unitNo).nullsNotDistinct(),
+    index("content_units_chapter_idx").on(t.chapterId),
+  ],
+);
+
+export const VIDEO_KINDS = ["lesson", "qa"] as const;
+export type VideoKind = (typeof VIDEO_KINDS)[number];
+
+/** One YouTube video or playlist inside a unit, in teaching order. */
+export const videos = pgTable(
+  "videos",
+  {
+    id: serial("id").primaryKey(),
+    unitId: integer("unit_id")
+      .notNull()
+      .references(() => contentUnits.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: VIDEO_KINDS }).notNull().default("lesson"),
+    title: text("title").notNull(),
+    youtubeId: text("youtube_id"),
+    playlistId: text("playlist_id"),
+    position: smallint("position").notNull(),
+    note: text("note"),
+  },
+  (t) => [
+    check("videos_one_source", sql`(${t.youtubeId} is null) <> (${t.playlistId} is null)`),
+    index("videos_unit_idx").on(t.unitId),
+  ],
+);
+
+/** A textbook PDF (one file per book or per term volume). */
+export const textbooks = pgTable(
+  "textbooks",
+  {
+    id: serial("id").primaryKey(),
+    standard: smallint("standard").notNull(),
+    subjectId: text("subject_id").notNull(),
+    medium: text("medium", { enum: MEDIUMS }).notNull(),
+    term: smallint("term"),
+    title: text("title").notNull(),
+    /** Key in file storage (local folder now, Cloudflare R2 later). */
+    storageKey: text("storage_key").notNull().unique(),
+    sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
+    pages: smallint("pages"),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+  },
+  (t) => [index("textbooks_subject_idx").on(t.standard, t.subjectId)],
+);
+
+/** Which pages of a textbook a chapter covers, so the reader opens at the right page. */
+export const chapterPages = pgTable(
+  "chapter_pages",
+  {
+    chapterId: text("chapter_id").notNull(),
+    textbookId: integer("textbook_id")
+      .notNull()
+      .references(() => textbooks.id, { onDelete: "cascade" }),
+    startPage: smallint("start_page").notNull(),
+    endPage: smallint("end_page").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.chapterId, t.textbookId] }),
+    check("chapter_pages_range", sql`${t.startPage} >= 1 and ${t.endPage} >= ${t.startPage}`),
+  ],
+);

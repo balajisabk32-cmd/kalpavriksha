@@ -29,7 +29,10 @@ export class InputError extends Error {
       | "username_taken"
       | "password_short"
       | "not_found"
-      | "last_admin",
+      | "last_admin"
+      | "video_link"
+      | "pages"
+      | "file",
     readonly field?: string,
   ) {
     super(code);
