@@ -550,7 +550,8 @@ function TextbooksCard({ subjectId, chapters, books, pages }: { subjectId: strin
         router.refresh();
         return;
       }
-      let code: UploadError = "server";
+      // Vercel refuses request bodies over 4.5 MB before our code runs.
+      let code: UploadError = xhr.status === 413 ? "too_big" : "server";
       try {
         const err = JSON.parse(xhr.responseText).error;
         if ((UPLOAD_ERRORS as readonly string[]).includes(err)) code = err;

@@ -13,6 +13,13 @@ export async function GET(request: Request, ctx: RouteContext<"/api/textbooks/[i
   const book = Number.isInteger(id) && id > 0 ? await getTextbook(await getDb(), id) : null;
   if (!book) return new Response("Not found", { status: 404 });
 
+  const store = await fileStore();
+  // Cloud storage: send the reader straight to a one-hour private link (supports
+  // byte ranges itself), so the book doesn't stream through our server.
+  if (store.signedUrl) {
+    return Response.redirect(await store.signedUrl(book.storageKey, 3600), 302);
+  }
+
   const headers: Record<string, string> = {
     "Content-Type": "application/pdf",
     "Accept-Ranges": "bytes",
@@ -21,7 +28,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/textbooks/[i
     "X-Content-Type-Options": "nosniff",
   };
   const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("range") ?? "");
-  const size = await fileStore().size(book.storageKey);
+  const size = await store.size(book.storageKey);
   if (size === null) return new Response("File missing", { status: 404 });
 
   if (range && (range[1] || range[2])) {
@@ -30,14 +37,14 @@ export async function GET(request: Request, ctx: RouteContext<"/api/textbooks/[i
     if (start > end || start >= size) {
       return new Response(null, { status: 416, headers: { ...headers, "Content-Range": `bytes */${size}` } });
     }
-    const file = await fileStore().get(book.storageKey, { start, end });
+    const file = await store.get(book.storageKey, { start, end });
     if (!file) return new Response("File missing", { status: 404 });
     return new Response(file.body, {
       status: 206,
       headers: { ...headers, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": String(end - start + 1) },
     });
   }
-  const file = await fileStore().get(book.storageKey);
+  const file = await store.get(book.storageKey);
   if (!file) return new Response("File missing", { status: 404 });
   return new Response(file.body, { headers: { ...headers, "Content-Length": String(size) } });
 }

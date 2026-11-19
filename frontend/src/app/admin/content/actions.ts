@@ -141,7 +141,7 @@ export async function deleteTextbookAction(_prev: ContentState, form: FormData):
   try {
     const db = await getDb();
     const key = await removeTextbook(db, Number(text(form, "textbookId")));
-    if (key) await fileStore().remove(key);
+    if (key) await (await fileStore()).remove(key);
     revalidatePath("/admin/content", "layout");
     return { ok: true };
   } catch (err) {

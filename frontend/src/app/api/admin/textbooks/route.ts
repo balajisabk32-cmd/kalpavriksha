@@ -33,7 +33,8 @@ export async function POST(request: Request) {
   if (!isPdf(data)) return Response.json({ error: "not_pdf" }, { status: 400 });
   const pages = typedPages ?? pdfPageCount(data);
   const storageKey = `textbooks/${subjectId}/${medium}/${randomUUID()}.pdf`;
-  await fileStore().put(storageKey, data);
+  const store = await fileStore();
+  await store.put(storageKey, data, "application/pdf");
   try {
     const book = await addTextbook(
       await getDb(),
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     );
     return Response.json({ textbook: { id: book.id, pages: book.pages } });
   } catch (err) {
-    await fileStore().remove(storageKey);
+    await store.remove(storageKey);
     console.error(err);
     return Response.json({ error: "server" }, { status: 500 });
   }

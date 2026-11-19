@@ -1,4 +1,3 @@
-import "server-only";
 import { createReadStream } from "node:fs";
 import { mkdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -7,28 +6,35 @@ import { Readable } from "node:stream";
 /**
  * Where uploaded files (textbook PDFs) live.
  *
- * Now: a folder on this computer (`frontend/.data/files`). That works for local
- * use and a single server, but not on Vercel, whose disk is wiped between requests
- * and whose uploads are capped at 4.5 MB. Before going live this gets a Cloudflare
- * R2 implementation of the same three functions (docs/platform-build-plan.md §3.2),
- * with the browser uploading straight to R2.
+ * - Backblaze B2 (or any S3-compatible storage) when the STORAGE_* variables are
+ *   set — that is the live site. Files are private; readers get a link that works
+ *   for one hour.
+ * - Otherwise a folder on this computer (`frontend/.data/files`), for local use.
+ *
+ * Variables: STORAGE_ENDPOINT (e.g. https://s3.us-west-004.backblazeb2.com),
+ * STORAGE_REGION (us-west-004), STORAGE_BUCKET, STORAGE_KEY_ID, STORAGE_SECRET.
  */
 export interface FileStore {
-  put(key: string, data: Uint8Array): Promise<void>;
+  readonly kind: "local" | "s3";
+  put(key: string, data: Uint8Array, contentType: string): Promise<void>;
   /** The file (or a byte range of it) as a web stream, with its total size. Null if missing. */
   get(key: string, range?: { start: number; end: number }): Promise<{ body: ReadableStream<Uint8Array>; size: number } | null>;
   size(key: string): Promise<number | null>;
   remove(key: string): Promise<void>;
+  /** A short-lived direct link (cloud storage only), so the file doesn't pass through our server. */
+  signedUrl?(key: string, seconds: number): Promise<string>;
 }
 
 const SAFE_KEY = /^[a-z0-9][a-z0-9/_.-]{0,200}$/i;
+function checkKey(key: string) {
+  if (!SAFE_KEY.test(key) || key.includes("..")) throw new Error(`Bad storage key: ${key}`);
+  return key;
+}
 
 function localStore(root: string): FileStore {
-  const fileOf = (key: string) => {
-    if (!SAFE_KEY.test(key) || key.includes("..")) throw new Error(`Bad storage key: ${key}`);
-    return path.join(root, key);
-  };
+  const fileOf = (key: string) => path.join(root, checkKey(key));
   return {
+    kind: "local",
     async put(key, data) {
       const file = fileOf(key);
       await mkdir(path.dirname(file), { recursive: true });
@@ -53,9 +59,80 @@ function localStore(root: string): FileStore {
   };
 }
 
-let store: FileStore | null = null;
+type S3Config = { endpoint: string; region: string; bucket: string; keyId: string; secret: string };
 
-export function fileStore(): FileStore {
-  store ??= localStore(path.resolve(process.cwd(), ".data/files"));
+function s3Config(env: NodeJS.ProcessEnv = process.env): S3Config | null {
+  const { STORAGE_ENDPOINT, STORAGE_REGION, STORAGE_BUCKET, STORAGE_KEY_ID, STORAGE_SECRET } = env;
+  if (!STORAGE_ENDPOINT || !STORAGE_BUCKET || !STORAGE_KEY_ID || !STORAGE_SECRET) return null;
+  // B2's region is the part of the endpoint after "s3.", e.g. us-west-004.
+  const region = STORAGE_REGION || /s3\.([a-z0-9-]+)\./.exec(STORAGE_ENDPOINT)?.[1] || "us-east-1";
+  return { endpoint: STORAGE_ENDPOINT.replace(/\/$/, ""), region, bucket: STORAGE_BUCKET, keyId: STORAGE_KEY_ID, secret: STORAGE_SECRET };
+}
+
+async function s3Store(cfg: S3Config): Promise<FileStore> {
+  const { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+  const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+  const client = new S3Client({
+    endpoint: cfg.endpoint,
+    region: cfg.region,
+    credentials: { accessKeyId: cfg.keyId, secretAccessKey: cfg.secret },
+    // B2 doesn't support the newer default checksums on every request.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
+  });
+  const Bucket = cfg.bucket;
+  const missing = (err: unknown) => {
+    const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+    return e.name === "NotFound" || e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404;
+  };
+  return {
+    kind: "s3",
+    async put(key, data, contentType) {
+      await client.send(new PutObjectCommand({ Bucket, Key: checkKey(key), Body: data, ContentType: contentType }));
+    },
+    async size(key) {
+      try {
+        const head = await client.send(new HeadObjectCommand({ Bucket, Key: checkKey(key) }));
+        return head.ContentLength ?? null;
+      } catch (err) {
+        if (missing(err)) return null;
+        throw err;
+      }
+    },
+    async get(key, range) {
+      try {
+        const res = await client.send(
+          new GetObjectCommand({ Bucket, Key: checkKey(key), Range: range ? `bytes=${range.start}-${range.end}` : undefined }),
+        );
+        const total = res.ContentRange ? Number(res.ContentRange.split("/")[1]) : (res.ContentLength ?? 0);
+        return { body: res.Body!.transformToWebStream() as ReadableStream<Uint8Array>, size: total };
+      } catch (err) {
+        if (missing(err)) return null;
+        throw err;
+      }
+    },
+    async remove(key) {
+      await client.send(new DeleteObjectCommand({ Bucket, Key: checkKey(key) }));
+    },
+    async signedUrl(key, seconds) {
+      return getSignedUrl(client, new GetObjectCommand({ Bucket, Key: checkKey(key), ResponseContentType: "application/pdf" }), {
+        expiresIn: seconds,
+      });
+    },
+  };
+}
+
+let store: Promise<FileStore> | null = null;
+
+export function fileStore(): Promise<FileStore> {
+  store ??= (async () => {
+    const cfg = s3Config();
+    return cfg ? s3Store(cfg) : localStore(path.resolve(process.cwd(), ".data/files"));
+  })();
   return store;
+}
+
+/** True when files go to cloud storage (the live site). */
+export function usesCloudStorage(): boolean {
+  return s3Config() !== null;
 }

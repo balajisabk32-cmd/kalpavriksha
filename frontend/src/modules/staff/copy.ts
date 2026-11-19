@@ -251,8 +251,8 @@ const en = {
     book: "Book",
     from: "From page",
     to: "To page",
-    localNote: "Files are kept on this computer for now. Cloud storage (Cloudflare R2) is set up before going live.",
-    uploadErrors: { file: "Choose a PDF file.", too_big: "This file is over 100 MB.", not_pdf: "This file isn't a PDF.", forbidden: "Only admins can upload.", not_found: "Unknown subject.", server: "Upload failed. Try again." },
+    localNote: "On the live site, PDFs over 4.5 MB must be uploaded with the command npm run textbook:upload (textbooks usually are).",
+    uploadErrors: { file: "Choose a PDF file.", too_big: "This file is too big to upload from the browser on the live site. Use the upload command (npm run textbook:upload) instead.", not_pdf: "This file isn't a PDF.", forbidden: "Only admins can upload.", not_found: "Unknown subject.", server: "Upload failed. Try again." },
   },
 
   errors: {
@@ -525,8 +525,8 @@ const ta: StaffCopy = {
     book: "நூல்",
     from: "தொடக்கப் பக்கம்",
     to: "இறுதிப் பக்கம்",
-    localNote: "கோப்புகள் தற்போது இந்தக் கணினியில் சேமிக்கப்படுகின்றன. நேரலைக்கு முன் கிளவுட் சேமிப்பு (Cloudflare R2) அமைக்கப்படும்.",
-    uploadErrors: { file: "PDF கோப்பைத் தேர்ந்தெடுங்கள்.", too_big: "இந்தக் கோப்பு 100 MB-க்கு மேல் உள்ளது.", not_pdf: "இது PDF கோப்பு அல்ல.", forbidden: "நிர்வாகிகள் மட்டுமே பதிவேற்றலாம்.", not_found: "தெரியாத பாடம்.", server: "பதிவேற்றம் தோல்வி. மீண்டும் முயலுங்கள்." },
+    localNote: "நேரலைத் தளத்தில் 4.5 MB-க்கு மேலான PDF-களை npm run textbook:upload கட்டளையால் பதிவேற்ற வேண்டும் (பாடநூல்கள் பொதுவாக அப்படித்தான்).",
+    uploadErrors: { file: "PDF கோப்பைத் தேர்ந்தெடுங்கள்.", too_big: "நேரலைத் தளத்தில் உலாவியிலிருந்து பதிவேற்ற இந்தக் கோப்பு மிகப் பெரியது. பதிவேற்றக் கட்டளையைப் (npm run textbook:upload) பயன்படுத்துங்கள்.", not_pdf: "இது PDF கோப்பு அல்ல.", forbidden: "நிர்வாகிகள் மட்டுமே பதிவேற்றலாம்.", not_found: "தெரியாத பாடம்.", server: "பதிவேற்றம் தோல்வி. மீண்டும் முயலுங்கள்." },
   },
 
   errors: {

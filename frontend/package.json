@@ -15,9 +15,13 @@
     "db:migrate": "tsx scripts/db-migrate.ts",
     "admin:create": "tsx scripts/create-admin.ts",
     "db:seed-dev": "tsx scripts/seed-dev.ts",
-    "content:import": "tsx scripts/import-videos.ts"
+    "content:import": "tsx scripts/import-videos.ts",
+    "textbook:upload": "tsx scripts/upload-textbook.ts",
+    "storage:check": "tsx scripts/storage-check.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1172.0",
+    "@aws-sdk/s3-request-presigner": "^3.1172.0",
     "@electric-sql/pglite": "^0.5.17",
     "@gsap/react": "^2.1.2",
     "@paper-design/shaders": "^0.0.82",

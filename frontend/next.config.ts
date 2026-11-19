@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
 
   // Load these from node_modules at runtime instead of bundling them: PGlite (the
   // local database) reads its WebAssembly files from its own folder.
-  serverExternalPackages: ["@electric-sql/pglite", "pg", "exceljs"],
+  serverExternalPackages: ["@electric-sql/pglite", "pg", "exceljs", "@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
 
   experimental: {
     // Limit worker threads to 2 so Next.js doesn't spawn 10 heavy Node workers on student PCs
