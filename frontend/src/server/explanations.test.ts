@@ -84,3 +84,12 @@ describe("saving and publishing", () => {
     await expect(saveExplanation(db, { chapterId: "c4-science-ch1", medium: "en", raw: "{}", userId: null })).rejects.toBeInstanceOf(ExplanationError);
   });
 });
+
+describe("Tamil translation prompt", () => {
+  it("asks for a faithful translation of the English explanation", async () => {
+    const { translationPrompt, explanationSchema } = await import("./explanations");
+    const p = translationPrompt("c4-science-ch1", explanationSchema.parse(SAMPLE));
+    expect(p).toContain("Translate faithfully");
+    expect(p).toContain("A kitchen");
+  });
+});

@@ -14,6 +14,8 @@ type Medium = "en" | "ta";
 type Localized = { en: string; ta: string };
 type Side = {
   prompt: string;
+  /** The Tamil prompt translates the saved English explanation. */
+  translate: boolean;
   pages: { title: string; startPage: number; endPage: number; textbookId: number } | null;
   saved: { status: "draft" | "published"; json: string; updatedAt: string } | null;
 };
@@ -27,6 +29,8 @@ const COPY = {
     status: { none: "Not written yet", draft: "Draft (students can't see it)", published: "Published — students see this" },
     step1: "1. Copy the prompt into Gemini",
     step1Lead: "Open Gemini, paste the prompt and send it. For the best result, attach the chapter's textbook pages too.",
+    step1Translate: "Tamil medium is the English medium translated, so this prompt asks Gemini to translate the English explanation. Save English first; if you change English later, translate again.",
+    step1NeedEnglish: "Tip: write the English explanation first — the Tamil one is then a translation of it.",
     copy: "Copy prompt",
     copied: "Copied",
     openGemini: "Open Gemini",
@@ -56,6 +60,8 @@ const COPY = {
     status: { none: "இன்னும் எழுதப்படவில்லை", draft: "வரைவு (மாணவர்களுக்குத் தெரியாது)", published: "வெளியிடப்பட்டது — மாணவர்கள் பார்க்கிறார்கள்" },
     step1: "1. கட்டளையை Gemini-இல் ஒட்டுங்கள்",
     step1Lead: "Gemini-ஐத் திறந்து கட்டளையை ஒட்டி அனுப்புங்கள். சிறந்த விளைவுக்கு, பாடநூல் பக்கங்களையும் இணையுங்கள்.",
+    step1Translate: "தமிழ் வழி என்பது ஆங்கில வழியின் மொழிபெயர்ப்பு; எனவே இந்தக் கட்டளை ஆங்கில விளக்கத்தை மொழிபெயர்க்கச் சொல்கிறது. ஆங்கிலத்தை மாற்றினால், மீண்டும் மொழிபெயர்க்கவும்.",
+    step1NeedEnglish: "குறிப்பு: முதலில் ஆங்கில விளக்கத்தை எழுதுங்கள் — தமிழ் அதன் மொழிபெயர்ப்பாக இருக்கும்.",
     copy: "கட்டளையை நகலெடு",
     copied: "நகலெடுக்கப்பட்டது",
     openGemini: "Gemini-ஐத் திற",
@@ -179,7 +185,8 @@ function MediumEditor({ chapterId, medium, side, onSaved }: { chapterId: string;
 
   return (
     <>
-      <Card title={c.step1} lead={c.step1Lead}>
+      <Card title={c.step1} lead={side.translate ? c.step1Translate : c.step1Lead}>
+        {medium === "ta" && !side.translate && <p className="mb-2 text-sm font-medium">{c.step1NeedEnglish}</p>}
         <label htmlFor={`prompt-${medium}`} className="sr-only">
           {c.step1}
         </label>

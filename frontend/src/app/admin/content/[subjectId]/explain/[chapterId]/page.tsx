@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { ExplainEditor } from "@/modules/staff/explain-editor";
 import { findChapter, listChapterPages, listTextbooks } from "@/server/content";
 import { getDb } from "@/server/db";
-import { explanationPrompt, getExplanation } from "@/server/explanations";
+import { explanationPrompt, getExplanation, translationPrompt } from "@/server/explanations";
 
 export default async function ExplainChapterPage(props: PageProps<"/admin/content/[subjectId]/explain/[chapterId]">) {
   const { subjectId, chapterId } = await props.params;
@@ -25,8 +25,11 @@ export default async function ExplainChapterPage(props: PageProps<"/admin/conten
   };
   const side = (medium: "en" | "ta", row: typeof en) => {
     const p = pagesIn(medium);
+    // Tamil medium is the English medium translated: once English exists, Tamil is a translation of it.
+    const translate = medium === "ta" && en !== null;
     return {
-      prompt: explanationPrompt(chapterId, medium, p),
+      prompt: translate ? translationPrompt(chapterId, en.data) : explanationPrompt(chapterId, medium, p),
+      translate,
       pages: p,
       saved: row ? { status: row.status, json: JSON.stringify(row.data, null, 2), updatedAt: row.updatedAt.toISOString() } : null,
     };

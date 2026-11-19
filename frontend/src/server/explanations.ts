@@ -17,6 +17,32 @@ import { explanationSchema, parseExplanation, type Explanation } from "@/lib/exp
 const LEVEL = (standard: number) =>
   standard <= 5 ? "a 9–10 year old" : standard <= 8 ? "a 12–13 year old" : standard <= 10 ? "a 14–15 year old" : "a 16–17 year old";
 
+/**
+ * Tamil medium is the English medium translated, so the Tamil explanation is a
+ * translation of the English one: same sections, same analogies, same questions.
+ */
+export function translationPrompt(chapterId: string, english: Explanation): string {
+  const found = findChapter(chapterId);
+  if (!found) throw new InputError("not_found");
+  const { subject, chapter, standard } = found;
+  return [
+    `You are a Tamil Nadu State Board (Samacheer Kalvi) teacher who teaches Tamil medium.`,
+    `Translate this Class ${standard} ${subject.name.en} explanation into simple, everyday Tamil (தமிழ்) for ${LEVEL(standard)}.`,
+    `Chapter: ${chapter.title.ta} (${chapter.title.en})`,
+    ``,
+    `Rules:`,
+    `- Translate faithfully: keep every section, analogy, example, key point, question and word in the same order. Add nothing, leave nothing out.`,
+    `- Use the Tamil terms the Tamil Nadu Tamil-medium textbook uses, with the English term in brackets the first time it appears.`,
+    `- Use simple standard written Tamil, as in the Tamil Nadu textbooks — not spoken/colloquial Tamil (write "பற்றி", "செய்கிறது", not "பத்தி", "செய்யுது").`,
+    `- Use only Tamil script, apart from the English terms in brackets. No Hindi or other-language words.`,
+    `- Keep the meaning exactly; do not turn a "can" into a "cannot". Translate each value completely.`,
+    `- Keep the JSON keys exactly as they are (in English); translate only the values.`,
+    ``,
+    `Reply with ONLY the translated JSON (no other text):`,
+    JSON.stringify(english, null, 2),
+  ].join("\n");
+}
+
 /** The prompt staff paste into Gemini for one chapter, in one medium. */
 export function explanationPrompt(chapterId: string, medium: Medium, pages?: { title: string; startPage: number; endPage: number } | null): string {
   const found = findChapter(chapterId);
