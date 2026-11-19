@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { updateProgress } from "@/components/progress-store";
-import { EMPTY_PROGRESS, type Profile, type Progress } from "@/lib/progress";
+import { getProgress, onProgressChange, updateProgress } from "@/components/progress-store";
+import { EMPTY_PROGRESS, mergeProgress, parseProgress, type Profile, type Progress } from "@/lib/progress";
 
 /** What `/api/auth/me` returns (mirrors `SessionUser` in src/server/auth/session.ts). */
 export type ClientUser = {
@@ -32,6 +32,7 @@ function load(): Promise<void> {
       const { user } = (await res.json()) as { user: ClientUser };
       updateProgress((p) => withAccountProfile(p, user));
       set({ status: "ready", user });
+      void startSync();
     })
     .catch(() => {
       request = null; // allow a retry
@@ -102,4 +103,44 @@ export function useSessionUser(): State & { retry: () => void } {
 export function useIsStaff(): boolean {
   const s = useSyncExternalStore(subscribe, () => state, () => SERVER_STATE);
   return s.status === "ready" && s.user.role !== "student";
+}
+
+// --- Saving progress on the server -------------------------------------------
+
+let syncing = false;
+let timer: ReturnType<typeof setTimeout> | null = null;
+
+function push(keepalive = false) {
+  if (timer) clearTimeout(timer);
+  timer = null;
+  const body = JSON.stringify(getProgress());
+  void fetch("/api/progress", { method: "PUT", body, keepalive: keepalive && body.length < 60_000, headers: { "Content-Type": "application/json" } }).catch(
+    () => {
+      // Offline: the device keeps its copy and sends it with the next change.
+    },
+  );
+}
+
+/**
+ * Brings in what this account earned on other devices, then saves every change
+ * here a few seconds after it happens (and when the page is closed).
+ */
+async function startSync() {
+  if (syncing) return;
+  syncing = true;
+  try {
+    const res = await fetch("/api/progress", { cache: "no-store" });
+    if (res.ok) {
+      const { progress } = (await res.json()) as { progress: unknown };
+      if (progress) updateProgress((p) => mergeProgress(p, parseProgress(progress)));
+    }
+  } catch {
+    // Offline: carry on with this device's copy.
+  }
+  push();
+  onProgressChange(() => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(push, 3000);
+  });
+  window.addEventListener("pagehide", () => timer && push(true));
 }

@@ -5,7 +5,7 @@
  * After changing this file run `npm run db:generate` to write a migration.
  */
 import { sql } from "drizzle-orm";
-import { bigint, check, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 export const ROLES = ["admin", "teacher", "student"] as const;
 export type Role = (typeof ROLES)[number];
@@ -205,3 +205,38 @@ export const chapterPages = pgTable(
     check("chapter_pages_range", sql`${t.startPage} >= 1 and ${t.endPage} >= ${t.startPage}`),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// Learning progress (Phase 3)
+// ---------------------------------------------------------------------------
+
+/** How much of each video a student has watched. */
+export const videoViews = pgTable(
+  "video_views",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    videoId: integer("video_id")
+      .notNull()
+      .references(() => videos.id, { onDelete: "cascade" }),
+    /** Furthest point reached, in seconds. */
+    seconds: integer("seconds").notNull().default(0),
+    duration: integer("duration"),
+    completed: boolean("completed").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.videoId] })],
+);
+
+/**
+ * A student's device progress (XP, lessons done, review cards…), the same shape
+ * as `Progress` in lib/progress.ts, so it follows them to any device.
+ */
+export const studentProgress = pgTable("student_progress", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  data: jsonb("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

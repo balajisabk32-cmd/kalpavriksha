@@ -51,3 +51,14 @@ export function updateProgress(fn: (p: Progress) => Progress) {
 export function useProgress(): Progress {
   return useSyncExternalStore(subscribe, read, () => EMPTY_PROGRESS);
 }
+
+/** The current progress outside React (for syncing). */
+export function getProgress(): Progress {
+  return read();
+}
+
+/** Calls `fn` after every change made on this device. Returns an unsubscribe function. */
+export function onProgressChange(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}

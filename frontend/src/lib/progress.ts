@@ -404,3 +404,29 @@ export function parseProgress(raw: unknown): Progress {
     analogyVotes: parseVotes(raw.analogyVotes),
   };
 }
+
+const union = (a: readonly string[], b: readonly string[]) => [...new Set([...a, ...b])];
+
+/**
+ * Combines this device's progress with the copy saved on the server, so
+ * nothing earned on either is lost: lists are joined, counts take the larger
+ * value, and where both have the same review card or vote, this device's
+ * (the most recent action) wins. The profile always comes from `local`, which
+ * the app has already filled from the signed-in account.
+ */
+export function mergeProgress(local: Progress, remote: Progress): Progress {
+  const activities = new Map(remote.activities.map((a) => [a.id, a]));
+  for (const a of local.activities) activities.set(a.id, a);
+  return {
+    version: 1,
+    profile: local.profile ?? remote.profile,
+    xp: Math.max(local.xp, remote.xp),
+    lessonsDone: union(remote.lessonsDone, local.lessonsDone),
+    songsHeard: union(remote.songsHeard, local.songsHeard),
+    quizBest: Math.max(local.quizBest, remote.quizBest),
+    activities: [...activities.values()],
+    activeDays: union(remote.activeDays, local.activeDays).sort(),
+    review: { ...remote.review, ...local.review },
+    analogyVotes: { ...remote.analogyVotes, ...local.analogyVotes },
+  };
+}
