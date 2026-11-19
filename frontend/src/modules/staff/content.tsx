@@ -1,6 +1,16 @@
 "use client";
 
-import { ArrowLeft, ArrowSquareOut, FilePdf, FileXls, Plus, Trash, UploadSimple, WarningCircle } from "@phosphor-icons/react/ssr";
+import {
+  ArrowLeft,
+  ArrowSquareOut,
+  ChalkboardTeacher,
+  FilePdf,
+  FileXls,
+  Plus,
+  Trash,
+  UploadSimple,
+  WarningCircle,
+} from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useMemo, useState, useTransition } from "react";
@@ -17,7 +27,19 @@ import {
 } from "@/app/admin/content/actions";
 import { useLocale } from "@/components/locale-provider";
 import type { ErrorCode } from "./copy";
-import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, Card, ErrorNote, Field, FOCUS, INPUT, PageHeader, SavedNote, useStaffCopy } from "./ui";
+import {
+  BTN_DANGER,
+  BTN_PRIMARY,
+  BTN_SECONDARY,
+  Card,
+  ErrorNote,
+  Field,
+  FOCUS,
+  INPUT,
+  PageHeader,
+  SavedNote,
+  useStaffCopy,
+} from "./ui";
 
 type Medium = "en" | "ta";
 type Match = "title" | "number" | "order" | "manual" | "subject";
@@ -35,7 +57,10 @@ function MatchBadge({ match }: { match: Match | null }) {
         ? "border-violet/50 text-violet"
         : "border-success/50 text-success";
   return (
-    <span title={match ? c.matchHint[match] : undefined} className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium ${tone}`}>
+    <span
+      title={match ? c.matchHint[match] : undefined}
+      className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium ${tone}`}
+    >
       {label}
     </span>
   );
@@ -90,19 +115,34 @@ export function ContentOverviewPage({ standard, rows }: { standard: number; rows
           <caption className="sr-only">{`${c.content.title} · ${c.classN(standard)}`}</caption>
           <thead className="border-b border-line text-xs text-muted">
             <tr>
-              <th scope="col" className="px-4 py-3 font-medium">{c.content.subject}</th>
-              <th scope="col" className="px-4 py-3 font-medium">{c.content.withVideoEn}</th>
-              <th scope="col" className="px-4 py-3 font-medium">{c.content.withVideoTa}</th>
-              <th scope="col" className="px-4 py-3 font-medium">{c.content.subjectVideos}</th>
-              <th scope="col" className="px-4 py-3 font-medium">{c.content.toCheck}</th>
-              <th scope="col" className="px-4 py-3 font-medium">{c.content.textbooks}</th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                {c.content.subject}
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                {c.content.withVideoEn}
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                {c.content.withVideoTa}
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                {c.content.subjectVideos}
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                {c.content.toCheck}
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                {c.content.textbooks}
+              </th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.subjectId} className="border-b border-line/60 last:border-0">
                 <th scope="row" className="px-4 py-2.5 font-medium">
-                  <Link href={`/admin/content/${r.subjectId}`} className={`rounded underline-offset-4 hover:underline ${FOCUS}`}>
+                  <Link
+                    href={`/admin/content/${r.subjectId}`}
+                    className={`rounded underline-offset-4 hover:underline ${FOCUS}`}
+                  >
                     {r.name[locale]}
                   </Link>
                   <span className="block text-xs font-normal text-muted">{`${r.chapters} ${c.content.chapters}`}</span>
@@ -110,7 +150,13 @@ export function ContentOverviewPage({ standard, rows }: { standard: number; rows
                 <td className="px-4 py-2.5 tabular-nums">{cell(r.withVideo.en, r.chapters)}</td>
                 <td className="px-4 py-2.5 tabular-nums">{cell(r.withVideo.ta, r.chapters)}</td>
                 <td className="px-4 py-2.5 tabular-nums">{r.subjectVideos || <span className="text-muted">0</span>}</td>
-                <td className="px-4 py-2.5 tabular-nums">{r.toCheck ? <span className="font-semibold text-amber">{r.toCheck}</span> : <span className="text-muted">0</span>}</td>
+                <td className="px-4 py-2.5 tabular-nums">
+                  {r.toCheck ? (
+                    <span className="font-semibold text-amber">{r.toCheck}</span>
+                  ) : (
+                    <span className="text-muted">0</span>
+                  )}
+                </td>
                 <td className="px-4 py-2.5 tabular-nums">{r.textbooks || <span className="text-muted">0</span>}</td>
               </tr>
             ))}
@@ -149,7 +195,10 @@ export function VideoImportPage({ subjectNames }: { subjectNames: Record<string,
 
   return (
     <>
-      <Link href="/admin/content" className={`inline-flex min-h-11 w-fit items-center gap-2 rounded-lg text-sm text-muted hover:text-text ${FOCUS}`}>
+      <Link
+        href="/admin/content"
+        className={`inline-flex min-h-11 w-fit items-center gap-2 rounded-lg text-sm text-muted hover:text-text ${FOCUS}`}
+      >
         <ArrowLeft size={16} aria-hidden />
         {c.content.title}
       </Link>
@@ -213,7 +262,12 @@ export function VideoImportPage({ subjectNames }: { subjectNames: Record<string,
             ) : (
               <div className="flex flex-col gap-2">
                 {result && "error" in result && <ErrorNote code={result.error} />}
-                <button type="button" onClick={save} disabled={saving || videoCount === 0} className={`${BTN_PRIMARY} w-fit`}>
+                <button
+                  type="button"
+                  onClick={save}
+                  disabled={saving || videoCount === 0}
+                  className={`${BTN_PRIMARY} w-fit`}
+                >
                   {saving ? c.content.saving : c.content.save(videoCount)}
                 </button>
               </div>
@@ -243,19 +297,25 @@ export function VideoImportPage({ subjectNames }: { subjectNames: Record<string,
               const name = subjectNames[first.subjectId]?.[locale] ?? first.subjectLabel;
               return (
                 <details key={key} className="rounded-xl border border-line">
-                  <summary className={`flex min-h-11 cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm ${FOCUS}`}>
+                  <summary
+                    className={`flex min-h-11 cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-sm ${FOCUS}`}
+                  >
                     <span className="font-semibold">
                       {c.classN(first.standard)} · {name}
                     </span>
                     <span className="text-muted">{c.medium[first.medium]}</span>
                     <span className="text-muted">
-                      {c.content.unitsIn(group.length)} · {c.content.videosN(group.reduce((n, u) => n + u.videos.length, 0))}
+                      {c.content.unitsIn(group.length)} ·{" "}
+                      {c.content.videosN(group.reduce((n, u) => n + u.videos.length, 0))}
                     </span>
                     {group.some((u) => u.match === "order" || u.match === null) && <MatchBadge match="order" />}
                   </summary>
                   <ul className="flex flex-col border-t border-line px-4 py-2">
                     {group.map((u, i) => (
-                      <li key={i} className="flex flex-wrap items-center justify-between gap-2 border-b border-line/50 py-2 text-sm last:border-0">
+                      <li
+                        key={i}
+                        className="flex flex-wrap items-center justify-between gap-2 border-b border-line/50 py-2 text-sm last:border-0"
+                      >
                         <span>
                           <span className="text-xs text-muted">{c.content.termUnit(u.term, u.unitNo)} · </span>
                           {u.title}
@@ -281,7 +341,14 @@ export function VideoImportPage({ subjectNames }: { subjectNames: Record<string,
 // --- One subject ------------------------------------------------------------
 
 export type ChapterItem = { id: string; chapterNumber: number; title: Localized };
-export type VideoItem = { id: number; kind: "lesson" | "qa"; title: string; youtubeId: string | null; playlistId: string | null; note: string | null };
+export type VideoItem = {
+  id: number;
+  kind: "lesson" | "qa";
+  title: string;
+  youtubeId: string | null;
+  playlistId: string | null;
+  note: string | null;
+};
 export type UnitItem = {
   id: number;
   medium: Medium;
@@ -292,11 +359,20 @@ export type UnitItem = {
   match: Match | null;
   videos: VideoItem[];
 };
-export type BookItem = { id: number; medium: Medium; term: number | null; title: string; pages: number | null; sizeBytes: number };
+export type BookItem = {
+  id: number;
+  medium: Medium;
+  term: number | null;
+  title: string;
+  pages: number | null;
+  sizeBytes: number;
+};
 export type PageItem = { chapterId: string; textbookId: number; startPage: number; endPage: number };
 
 const watchUrl = (v: { youtubeId: string | null; playlistId: string | null }) =>
-  v.youtubeId ? `https://www.youtube.com/watch?v=${v.youtubeId}` : `https://www.youtube.com/playlist?list=${v.playlistId}`;
+  v.youtubeId
+    ? `https://www.youtube.com/watch?v=${v.youtubeId}`
+    : `https://www.youtube.com/playlist?list=${v.playlistId}`;
 
 export function SubjectContentPage({
   standard,
@@ -306,7 +382,9 @@ export function SubjectContentPage({
   units,
   books,
   pages,
+  explain = {},
 }: {
+  explain?: Record<string, Partial<Record<Medium, "draft" | "published">>>;
   standard: number;
   subjectId: string;
   name: Localized;
@@ -326,7 +404,10 @@ export function SubjectContentPage({
 
   return (
     <>
-      <Link href={`/admin/content?class=${standard}`} className={`inline-flex min-h-11 w-fit items-center gap-2 rounded-lg text-sm text-muted hover:text-text ${FOCUS}`}>
+      <Link
+        href={`/admin/content?class=${standard}`}
+        className={`inline-flex min-h-11 w-fit items-center gap-2 rounded-lg text-sm text-muted hover:text-text ${FOCUS}`}
+      >
         <ArrowLeft size={16} aria-hidden />
         {c.content.title} · {c.classN(standard)}
       </Link>
@@ -350,7 +431,12 @@ export function SubjectContentPage({
         )}
         <ol className="flex flex-col gap-2">
           {chapters.map((ch) => (
-            <ChapterRow key={ch.id} chapter={ch} units={units.filter((u) => u.chapterId === ch.id)} />
+            <ChapterRow
+              key={ch.id}
+              chapter={ch}
+              units={units.filter((u) => u.chapterId === ch.id)}
+              explain={explain[ch.id] ?? {}}
+            />
           ))}
         </ol>
       </Card>
@@ -361,10 +447,18 @@ export function SubjectContentPage({
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="text-xs text-muted">
                 <tr>
-                  <th scope="col" className="py-2 pr-3 font-medium">{c.form.medium}</th>
-                  <th scope="col" className="py-2 pr-3 font-medium">{c.content.unitCol}</th>
-                  <th scope="col" className="py-2 pr-3 font-medium">{c.content.videoTitle}</th>
-                  <th scope="col" className="py-2 font-medium">{c.content.chapterList}</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    {c.form.medium}
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    {c.content.unitCol}
+                  </th>
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    {c.content.videoTitle}
+                  </th>
+                  <th scope="col" className="py-2 font-medium">
+                    {c.content.chapterList}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -400,7 +494,20 @@ function VideoLink({ v }: { v: VideoItem }) {
   );
 }
 
-function ChapterRow({ chapter, units }: { chapter: ChapterItem; units: readonly UnitItem[] }) {
+const EXPLAIN_LABEL = {
+  en: { title: "Explanation", none: "none", draft: "draft", published: "live", open: "Write / review" },
+  ta: { title: "விளக்கம்", none: "இல்லை", draft: "வரைவு", published: "வெளியிடப்பட்டது", open: "எழுது / சரிபார்" },
+} as const;
+
+function ChapterRow({
+  chapter,
+  units,
+  explain,
+}: {
+  chapter: ChapterItem;
+  units: readonly UnitItem[];
+  explain: Partial<Record<Medium, "draft" | "published">>;
+}) {
   const c = useStaffCopy();
   const { locale } = useLocale();
   const count = (m: Medium) => units.filter((u) => u.medium === m).reduce((n, u) => n + u.videos.length, 0);
@@ -409,7 +516,9 @@ function ChapterRow({ chapter, units }: { chapter: ChapterItem; units: readonly 
   return (
     <li className="rounded-xl border border-line">
       <details>
-        <summary className={`flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm ${FOCUS}`}>
+        <summary
+          className={`flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm ${FOCUS}`}
+        >
           <span className="font-medium">
             {chapter.chapterNumber}. {chapter.title[locale] || chapter.title.en}
           </span>
@@ -423,6 +532,7 @@ function ChapterRow({ chapter, units }: { chapter: ChapterItem; units: readonly 
           </span>
         </summary>
         <div className="flex flex-col gap-3 border-t border-line px-4 py-3">
+          <ExplainLink chapterId={chapter.id} explain={explain} />
           {units.length === 0 ? (
             <p className="text-sm text-muted">{c.content.noVideo}</p>
           ) : (
@@ -442,12 +552,22 @@ function ChapterRow({ chapter, units }: { chapter: ChapterItem; units: readonly 
               </div>
             ))
           )}
-          <form action={addAction} className="grid gap-2 rounded-xl bg-bg/40 p-3 sm:grid-cols-[2fr_1.4fr_auto_auto_auto]">
+          <form
+            action={addAction}
+            className="grid gap-2 rounded-xl bg-bg/40 p-3 sm:grid-cols-[2fr_1.4fr_auto_auto_auto]"
+          >
             <input type="hidden" name="chapterId" value={chapter.id} />
             <label className="sr-only" htmlFor={`url-${chapter.id}`}>
               {c.content.videoUrl}
             </label>
-            <input id={`url-${chapter.id}`} name="url" required placeholder={c.content.videoUrl} inputMode="url" className={INPUT} />
+            <input
+              id={`url-${chapter.id}`}
+              name="url"
+              required
+              placeholder={c.content.videoUrl}
+              inputMode="url"
+              className={INPUT}
+            />
             <label className="sr-only" htmlFor={`title-${chapter.id}`}>
               {c.content.videoTitle}
             </label>
@@ -472,20 +592,67 @@ function ChapterRow({ chapter, units }: { chapter: ChapterItem; units: readonly 
   );
 }
 
+function ExplainLink({
+  chapterId,
+  explain,
+}: {
+  chapterId: string;
+  explain: Partial<Record<Medium, "draft" | "published">>;
+}) {
+  const c = useStaffCopy();
+  const { locale } = useLocale();
+  const l = EXPLAIN_LABEL[locale];
+  const subjectId = chapterId.replace(/-ch\d+$/, "");
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-violet/[0.06] px-3 py-2 text-sm">
+      <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          <ChalkboardTeacher size={16} aria-hidden className="text-violet" />
+          {l.title}
+        </span>
+        {(["en", "ta"] as const).map((m) => (
+          <span
+            key={m}
+            className={`text-xs ${explain[m] === "published" ? "text-success" : explain[m] ? "" : "text-muted"}`}
+          >
+            {c.mediumShort[m]}: {l[explain[m] ?? "none"]}
+          </span>
+        ))}
+      </span>
+      <Link href={`/admin/content/${subjectId}/explain/${chapterId}`} className={`${BTN_SECONDARY} min-h-10`}>
+        {l.open}
+      </Link>
+    </div>
+  );
+}
+
 function DeleteVideo({ id }: { id: number }) {
   const c = useStaffCopy();
   const [, action, pending] = useActionState<ContentState, FormData>(deleteVideoAction, {});
   return (
     <form action={action}>
       <input type="hidden" name="videoId" value={id} />
-      <button type="submit" disabled={pending} aria-label={c.content.remove} className={`grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger ${FOCUS}`}>
+      <button
+        type="submit"
+        disabled={pending}
+        aria-label={c.content.remove}
+        className={`grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger ${FOCUS}`}
+      >
         <Trash size={16} aria-hidden />
       </button>
     </form>
   );
 }
 
-function UnitRow({ unit, chapters, chapterTitle }: { unit: UnitItem; chapters: readonly ChapterItem[]; chapterTitle: (id: string | null) => string }) {
+function UnitRow({
+  unit,
+  chapters,
+  chapterTitle,
+}: {
+  unit: UnitItem;
+  chapters: readonly ChapterItem[];
+  chapterTitle: (id: string | null) => string;
+}) {
   const c = useStaffCopy();
   const [state, action, pending] = useActionState<ContentState, FormData>(setUnitChapterAction, {});
   return (
@@ -502,7 +669,12 @@ function UnitRow({ unit, chapters, chapterTitle }: { unit: UnitItem; chapters: r
         ) : (
           <form key={`${unit.chapterId}`} action={action} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="unitId" value={unit.id} />
-            <select name="chapterId" defaultValue={unit.chapterId ?? ""} aria-label={`${unit.title}: ${c.content.chapterList}`} className={`${INPUT} min-h-9 max-w-72 py-1`}>
+            <select
+              name="chapterId"
+              defaultValue={unit.chapterId ?? ""}
+              aria-label={`${unit.title}: ${c.content.chapterList}`}
+              className={`${INPUT} min-h-9 max-w-72 py-1`}
+            >
               <option value="">{c.content.notLinked}</option>
               {chapters.map((ch) => (
                 <option key={ch.id} value={ch.id}>
@@ -526,7 +698,17 @@ function UnitRow({ unit, chapters, chapterTitle }: { unit: UnitItem; chapters: r
 const UPLOAD_ERRORS = ["file", "too_big", "not_pdf", "forbidden", "not_found", "server"] as const;
 type UploadError = (typeof UPLOAD_ERRORS)[number];
 
-function TextbooksCard({ subjectId, chapters, books, pages }: { subjectId: string; chapters: readonly ChapterItem[]; books: readonly BookItem[]; pages: readonly PageItem[] }) {
+function TextbooksCard({
+  subjectId,
+  chapters,
+  books,
+  pages,
+}: {
+  subjectId: string;
+  chapters: readonly ChapterItem[];
+  books: readonly BookItem[];
+  pages: readonly PageItem[];
+}) {
   const c = useStaffCopy();
   const { locale } = useLocale();
   const router = useRouter();
@@ -628,7 +810,12 @@ function TextbooksCard({ subjectId, chapters, books, pages }: { subjectId: strin
                 {progress !== null ? c.content.uploading(progress) : c.content.upload}
               </button>
               {progress !== null && (
-                <progress value={progress} max={100} className="h-2 w-40 accent-violet" aria-label={c.content.uploading(progress)} />
+                <progress
+                  value={progress}
+                  max={100}
+                  className="h-2 w-40 accent-violet"
+                  aria-label={c.content.uploading(progress)}
+                />
               )}
             </div>
             <p className="text-xs text-muted">{c.content.localNote}</p>
@@ -680,13 +867,18 @@ function BookRow({ book }: { book: BookItem }) {
           <span className="font-medium">{book.title}</span>
           <span className="block text-xs text-muted">
             {c.mediumShort[book.medium]}
-            {book.term ? ` · ${c.content.term} ${book.term}` : ""} · {book.pages ? `${book.pages} ${c.content.pages}` : "—"} ·{" "}
-            {(book.sizeBytes / 1024 / 1024).toFixed(1)} MB
+            {book.term ? ` · ${c.content.term} ${book.term}` : ""} ·{" "}
+            {book.pages ? `${book.pages} ${c.content.pages}` : "—"} · {(book.sizeBytes / 1024 / 1024).toFixed(1)} MB
           </span>
         </span>
       </span>
       <span className="flex flex-wrap items-center gap-2">
-        <a href={`/api/textbooks/${book.id}`} target="_blank" rel="noopener" className={`${BTN_SECONDARY} min-h-9 px-3 text-xs`}>
+        <a
+          href={`/api/textbooks/${book.id}`}
+          target="_blank"
+          rel="noopener"
+          className={`${BTN_SECONDARY} min-h-9 px-3 text-xs`}
+        >
           {c.content.view}
         </a>
         <form action={action} className="flex items-center gap-2" onSubmit={() => setConfirming(false)}>
@@ -697,7 +889,11 @@ function BookRow({ book }: { book: BookItem }) {
               <button type="submit" disabled={pending} className={`${BTN_DANGER} min-h-9 px-3 text-xs`}>
                 {c.content.deleteBook}
               </button>
-              <button type="button" onClick={() => setConfirming(false)} className={`${BTN_SECONDARY} min-h-9 px-3 text-xs`}>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className={`${BTN_SECONDARY} min-h-9 px-3 text-xs`}
+              >
                 {c.cancel}
               </button>
             </>
@@ -714,7 +910,17 @@ function BookRow({ book }: { book: BookItem }) {
   );
 }
 
-function PagesRow({ title, chapterId, books, current }: { title: string; chapterId: string; books: readonly BookItem[]; current: PageItem | null }) {
+function PagesRow({
+  title,
+  chapterId,
+  books,
+  current,
+}: {
+  title: string;
+  chapterId: string;
+  books: readonly BookItem[];
+  current: PageItem | null;
+}) {
   const c = useStaffCopy();
   const [state, action, pending] = useActionState<ContentState, FormData>(setChapterPagesAction, {});
   return (
@@ -727,15 +933,36 @@ function PagesRow({ title, chapterId, books, current }: { title: string; chapter
         <span className="self-center">{title}</span>
         <input type="hidden" name="chapterId" value={chapterId} />
         <input type="hidden" name="previousTextbookId" value={current?.textbookId ?? ""} />
-        <select name="textbookId" aria-label={`${title}: ${c.content.book}`} defaultValue={current?.textbookId ?? books[0]?.id ?? ""} className={`${INPUT} min-h-9 py-1`}>
+        <select
+          name="textbookId"
+          aria-label={`${title}: ${c.content.book}`}
+          defaultValue={current?.textbookId ?? books[0]?.id ?? ""}
+          className={`${INPUT} min-h-9 py-1`}
+        >
           {books.map((b) => (
             <option key={b.id} value={b.id}>
               {b.title} ({c.mediumShort[b.medium]})
             </option>
           ))}
         </select>
-        <input name="startPage" type="number" min={1} aria-label={`${title}: ${c.content.from}`} placeholder={c.content.from} defaultValue={current?.startPage ?? ""} className={`${INPUT} min-h-9 py-1`} />
-        <input name="endPage" type="number" min={1} aria-label={`${title}: ${c.content.to}`} placeholder={c.content.to} defaultValue={current?.endPage ?? ""} className={`${INPUT} min-h-9 py-1`} />
+        <input
+          name="startPage"
+          type="number"
+          min={1}
+          aria-label={`${title}: ${c.content.from}`}
+          placeholder={c.content.from}
+          defaultValue={current?.startPage ?? ""}
+          className={`${INPUT} min-h-9 py-1`}
+        />
+        <input
+          name="endPage"
+          type="number"
+          min={1}
+          aria-label={`${title}: ${c.content.to}`}
+          placeholder={c.content.to}
+          defaultValue={current?.endPage ?? ""}
+          className={`${INPUT} min-h-9 py-1`}
+        />
         <span className="flex items-center gap-2">
           <button type="submit" disabled={pending} className={`${BTN_SECONDARY} min-h-9 px-3 text-xs`}>
             {c.save}

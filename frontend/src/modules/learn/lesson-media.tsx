@@ -1,8 +1,20 @@
 "use client";
 
-import { ArrowSquareOut, BookOpen, CheckCircle, ListBullets, MagnifyingGlassMinus, MagnifyingGlassPlus, Play, PlayCircle, VideoCamera } from "@phosphor-icons/react/ssr";
+import {
+  ArrowSquareOut,
+  BookOpen,
+  CheckCircle,
+  ListBullets,
+  MagnifyingGlassMinus,
+  MagnifyingGlassPlus,
+  Play,
+  PlayCircle,
+  VideoCamera,
+} from "@phosphor-icons/react/ssr";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useLocale } from "@/components/locale-provider";
+import type { Explanation } from "@/lib/explanation";
+import { ExplanationView } from "./explanation-view";
 
 /**
  * "Watch & read": the chapter's YouTube explanations beside its textbook pages.
@@ -11,7 +23,15 @@ import { useLocale } from "@/components/locale-provider";
  */
 
 type Medium = "en" | "ta";
-type LessonVideo = { id: number; kind: "lesson" | "qa"; title: string; youtubeId: string | null; playlistId: string | null; medium: Medium; unitTitle?: string };
+type LessonVideo = {
+  id: number;
+  kind: "lesson" | "qa";
+  title: string;
+  youtubeId: string | null;
+  playlistId: string | null;
+  medium: Medium;
+  unitTitle?: string;
+};
 type LessonData = {
   medium: Medium;
   otherMedium: Medium | null;
@@ -19,6 +39,7 @@ type LessonData = {
   subjectVideos: LessonVideo[];
   textbook: { id: number; title: string; startPage: number; endPage: number; pages: number | null; url: string } | null;
   watched: Record<number, { seconds: number; completed: boolean }>;
+  explanation: { medium: Medium; status: "draft" | "published"; data: Explanation } | null;
 };
 
 const COPY = {
@@ -76,13 +97,16 @@ const COPY = {
   },
 } as const;
 
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+const FOCUS =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
 export function LessonMedia({ chapterId }: { chapterId: string }) {
   const { locale } = useLocale();
   const c = COPY[locale];
   const [medium, setMedium] = useState<Medium | null>(null);
-  const [state, setState] = useState<{ status: "loading" } | { status: "error" } | { status: "ready"; data: LessonData }>({ status: "loading" });
+  const [state, setState] = useState<
+    { status: "loading" } | { status: "error" } | { status: "ready"; data: LessonData }
+  >({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState<"video" | "book">("video");
   const [current, setCurrent] = useState<LessonVideo | null>(null);
@@ -113,7 +137,13 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
             ...s,
             data: {
               ...s.data,
-              watched: { ...s.data.watched, [videoId]: { seconds: Math.max(seconds, s.data.watched[videoId]?.seconds ?? 0), completed: completed || Boolean(s.data.watched[videoId]?.completed) } },
+              watched: {
+                ...s.data.watched,
+                [videoId]: {
+                  seconds: Math.max(seconds, s.data.watched[videoId]?.seconds ?? 0),
+                  completed: completed || Boolean(s.data.watched[videoId]?.completed),
+                },
+              },
             },
           }
         : s,
@@ -133,12 +163,19 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
   }
   if (state.status === "error") {
     return (
-      <section role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-surface/80 p-4 text-sm sm:p-6">
+      <section
+        role="alert"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-surface/80 p-4 text-sm sm:p-6"
+      >
         <span>{c.failed}</span>
-        <button type="button" onClick={() => {
+        <button
+          type="button"
+          onClick={() => {
             setState({ status: "loading" });
             setAttempt((n) => n + 1);
-          }} className={`min-h-11 rounded-xl border border-line-strong px-4 font-semibold hover:bg-violet/[0.08] ${FOCUS}`}>
+          }}
+          className={`min-h-11 rounded-xl border border-line-strong px-4 font-semibold hover:bg-violet/[0.08] ${FOCUS}`}
+        >
           {c.retry}
         </button>
       </section>
@@ -147,7 +184,16 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
 
   const { data } = state;
   const hasVideo = data.videos.length + data.subjectVideos.length > 0;
+  const explanation = data.explanation && (
+    <ExplanationView
+      data={data.explanation.data}
+      lang={data.explanation.medium}
+      draft={data.explanation.status === "draft"}
+      fallbackFrom={data.explanation.medium !== data.medium ? data.medium : undefined}
+    />
+  );
   if (!hasVideo && !data.textbook) {
+    if (explanation) return explanation;
     return (
       <section className="flex items-center gap-3 rounded-3xl border border-dashed border-line bg-surface/60 p-4 text-sm text-muted sm:p-5">
         <VideoCamera size={22} aria-hidden className="shrink-0 text-violet" />
@@ -158,7 +204,11 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
 
   const videoPane = (
     <div className="flex min-w-0 flex-col gap-3">
-      {current ? <VideoPlayer key={current.id} video={current} onProgress={markWatched} /> : <Empty icon="video" text={c.noVideo} />}
+      {current ? (
+        <VideoPlayer key={current.id} video={current} onProgress={markWatched} />
+      ) : (
+        <Empty icon="video" text={c.noVideo} />
+      )}
       {hasVideo && (
         <VideoList
           videos={data.videos}
@@ -173,62 +223,82 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
   const bookPane = data.textbook ? <TextbookReader book={data.textbook} /> : <Empty icon="book" text={c.noBook} />;
 
   return (
-    <section aria-labelledby={`${tabsId}-title`} className="flex flex-col gap-4 rounded-3xl border border-line bg-surface/85 p-4 sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id={`${tabsId}-title`} className="font-display text-xl font-bold tracking-tight">
-            {c.title}
-          </h2>
-          <p className="mt-1 text-sm text-muted">{c.lead}</p>
+    <>
+      {explanation}
+      <section
+        aria-labelledby={`${tabsId}-title`}
+        className="flex flex-col gap-4 rounded-3xl border border-line bg-surface/85 p-4 sm:p-6"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id={`${tabsId}-title`} className="font-display text-xl font-bold tracking-tight">
+              {c.title}
+            </h2>
+            <p className="mt-1 text-sm text-muted">{c.lead}</p>
+          </div>
+          {data.otherMedium && (
+            <button
+              type="button"
+              onClick={() => {
+                setState({ status: "loading" });
+                setMedium(data.otherMedium);
+              }}
+              className={`min-h-10 rounded-xl border border-line-strong px-3 text-sm font-medium hover:bg-violet/[0.08] ${FOCUS}`}
+            >
+              {c.switchTo(c.medium[data.otherMedium])}
+            </button>
+          )}
         </div>
-        {data.otherMedium && (
-          <button
-            type="button"
-            onClick={() => {
-              setState({ status: "loading" });
-              setMedium(data.otherMedium);
-            }}
-            className={`min-h-10 rounded-xl border border-line-strong px-3 text-sm font-medium hover:bg-violet/[0.08] ${FOCUS}`}
-          >
-            {c.switchTo(c.medium[data.otherMedium])}
-          </button>
-        )}
-      </div>
 
-      {/* Phones and tablets: Video / Textbook tabs. Wide screens: side by side. */}
-      <div role="tablist" aria-label={c.title} className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-bg/40 p-1 lg:hidden">
-        {(
-          [
-            ["video", c.video, PlayCircle],
-            ["book", c.textbook, BookOpen],
-          ] as const
-        ).map(([id, label, Icon]) => (
-          <button
-            key={id}
-            role="tab"
-            type="button"
-            id={`${tabsId}-${id}`}
-            aria-selected={tab === id}
-            aria-controls={`${tabsId}-${id}-panel`}
-            onClick={() => setTab(id)}
-            className={`flex min-h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors ${FOCUS} ${
-              tab === id ? "bg-purple-600 text-white" : "text-muted hover:text-text"
-            }`}
+        {/* Phones and tablets: Video / Textbook tabs. Wide screens: side by side. */}
+        <div
+          role="tablist"
+          aria-label={c.title}
+          className="grid grid-cols-2 gap-1 rounded-2xl border border-line bg-bg/40 p-1 lg:hidden"
+        >
+          {(
+            [
+              ["video", c.video, PlayCircle],
+              ["book", c.textbook, BookOpen],
+            ] as const
+          ).map(([id, label, Icon]) => (
+            <button
+              key={id}
+              role="tab"
+              type="button"
+              id={`${tabsId}-${id}`}
+              aria-selected={tab === id}
+              aria-controls={`${tabsId}-${id}-panel`}
+              onClick={() => setTab(id)}
+              className={`flex min-h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors ${FOCUS} ${
+                tab === id ? "bg-purple-600 text-white" : "text-muted hover:text-text"
+              }`}
+            >
+              <Icon size={18} aria-hidden />
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <div
+            role="tabpanel"
+            id={`${tabsId}-video-panel`}
+            aria-labelledby={`${tabsId}-video`}
+            className={`min-w-0 lg:block ${tab === "video" ? "" : "hidden"}`}
           >
-            <Icon size={18} aria-hidden />
-            {label}
-          </button>
-        ))}
-      </div>
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div role="tabpanel" id={`${tabsId}-video-panel`} aria-labelledby={`${tabsId}-video`} className={`min-w-0 lg:block ${tab === "video" ? "" : "hidden"}`}>
-          {videoPane}
+            {videoPane}
+          </div>
+          <div
+            role="tabpanel"
+            id={`${tabsId}-book-panel`}
+            aria-labelledby={`${tabsId}-book`}
+            className={`min-w-0 lg:block ${tab === "book" ? "" : "hidden"}`}
+          >
+            {bookPane}
+          </div>
         </div>
-        <div role="tabpanel" id={`${tabsId}-book-panel`} aria-labelledby={`${tabsId}-book`} className={`min-w-0 lg:block ${tab === "book" ? "" : "hidden"}`}>
-          {bookPane}
-        </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
@@ -277,10 +347,16 @@ function VideoList({
           </span>
           <span className="min-w-0 flex-1">
             <span className="line-clamp-2">{v.title}</span>
-            {v.unitTitle && v.unitTitle !== v.title && <span className="block truncate text-xs font-normal text-muted">{v.unitTitle}</span>}
+            {v.unitTitle && v.unitTitle !== v.title && (
+              <span className="block truncate text-xs font-normal text-muted">{v.unitTitle}</span>
+            )}
           </span>
-          {v.kind === "qa" && <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px]">{c.qa}</span>}
-          {v.playlistId && <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px]">{c.playlist}</span>}
+          {v.kind === "qa" && (
+            <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px]">{c.qa}</span>
+          )}
+          {v.playlistId && (
+            <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px]">{c.playlist}</span>
+          )}
         </button>
       </li>
     );
@@ -366,7 +442,13 @@ function report(videoId: number, seconds: number, duration: number) {
  * Shows the video's picture first and loads YouTube only on "Play", so opening a
  * chapter stays fast on slow connections. Uses youtube-nocookie.com.
  */
-function VideoPlayer({ video, onProgress }: { video: LessonVideo; onProgress: (id: number, seconds: number, completed: boolean) => void }) {
+function VideoPlayer({
+  video,
+  onProgress,
+}: {
+  video: LessonVideo;
+  onProgress: (id: number, seconds: number, completed: boolean) => void;
+}) {
   const { locale } = useLocale();
   const c = COPY[locale];
   const [started, setStarted] = useState(false);
@@ -431,13 +513,18 @@ function VideoPlayer({ video, onProgress }: { video: LessonVideo; onProgress: (i
     };
   }, [started, video, locale, onProgress]);
 
-  const watchUrl = video.youtubeId ? `https://www.youtube.com/watch?v=${video.youtubeId}` : `https://www.youtube.com/playlist?list=${video.playlistId}`;
+  const watchUrl = video.youtubeId
+    ? `https://www.youtube.com/watch?v=${video.youtubeId}`
+    : `https://www.youtube.com/playlist?list=${video.playlistId}`;
 
   return (
     <div className="flex flex-col gap-2">
       <div className="relative aspect-video overflow-hidden rounded-2xl bg-black">
         {started && !failed ? (
-          <div ref={host} className="absolute inset-0 [&>iframe]:h-full [&>iframe]:w-full [&_iframe]:h-full [&_iframe]:w-full" />
+          <div
+            ref={host}
+            className="absolute inset-0 [&>iframe]:h-full [&>iframe]:w-full [&_iframe]:h-full [&_iframe]:w-full"
+          />
         ) : (
           <button
             type="button"
@@ -463,7 +550,12 @@ function VideoPlayer({ video, onProgress }: { video: LessonVideo; onProgress: (i
       </div>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="min-w-0 flex-1 text-sm font-semibold">{video.title}</p>
-        <a href={watchUrl} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 rounded text-xs text-muted hover:text-text ${FOCUS}`}>
+        <a
+          href={watchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center gap-1 rounded text-xs text-muted hover:text-text ${FOCUS}`}
+        >
           YouTube <ArrowSquareOut size={12} aria-hidden />
         </a>
       </div>
@@ -476,7 +568,11 @@ function VideoPlayer({ video, onProgress }: { video: LessonVideo; onProgress: (i
 type PdfDoc = { numPages: number; getPage(n: number): Promise<PdfPage> };
 type PdfPage = {
   getViewport(o: { scale: number }): { width: number; height: number };
-  render(o: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number }; canvas: HTMLCanvasElement }): { promise: Promise<void>; cancel(): void };
+  render(o: {
+    canvasContext: CanvasRenderingContext2D;
+    viewport: { width: number; height: number };
+    canvas: HTMLCanvasElement;
+  }): { promise: Promise<void>; cancel(): void };
 };
 
 /**
@@ -505,7 +601,12 @@ function TextbookReader({ book }: { book: NonNullable<LessonData["textbook"]> })
       const pdfjs = await import("pdfjs-dist");
       if (!alive) return;
       pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
-      task = pdfjs.getDocument({ url: book.url, disableAutoFetch: true, disableStream: true, rangeChunkSize: 128 * 1024 });
+      task = pdfjs.getDocument({
+        url: book.url,
+        disableAutoFetch: true,
+        disableStream: true,
+        rangeChunkSize: 128 * 1024,
+      });
       const loaded = (await task.promise) as PdfDoc;
       if (!alive) return;
       const first = await loaded.getPage(book.startPage);
@@ -533,26 +634,50 @@ function TextbookReader({ book }: { book: NonNullable<LessonData["textbook"]> })
     <div className="flex h-full flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
         <p className="min-w-0">
-          <span className="font-semibold">{book.title}</span> <span className="text-muted">· {c.pages(book.startPage, last)}</span>
+          <span className="font-semibold">{book.title}</span>{" "}
+          <span className="text-muted">· {c.pages(book.startPage, last)}</span>
         </p>
         <div className="flex items-center gap-1">
-          <button type="button" aria-label={c.zoomOut} onClick={() => setZoom((z) => Math.max(0.6, +(z - 0.2).toFixed(1)))} className={`grid size-10 place-items-center rounded-lg border border-line hover:bg-violet/[0.08] ${FOCUS}`}>
+          <button
+            type="button"
+            aria-label={c.zoomOut}
+            onClick={() => setZoom((z) => Math.max(0.6, +(z - 0.2).toFixed(1)))}
+            className={`grid size-10 place-items-center rounded-lg border border-line hover:bg-violet/[0.08] ${FOCUS}`}
+          >
             <MagnifyingGlassMinus size={18} aria-hidden />
           </button>
-          <button type="button" aria-label={c.zoomIn} onClick={() => setZoom((z) => Math.min(2.4, +(z + 0.2).toFixed(1)))} className={`grid size-10 place-items-center rounded-lg border border-line hover:bg-violet/[0.08] ${FOCUS}`}>
+          <button
+            type="button"
+            aria-label={c.zoomIn}
+            onClick={() => setZoom((z) => Math.min(2.4, +(z + 0.2).toFixed(1)))}
+            className={`grid size-10 place-items-center rounded-lg border border-line hover:bg-violet/[0.08] ${FOCUS}`}
+          >
             <MagnifyingGlassPlus size={18} aria-hidden />
           </button>
-          <a href={`${book.url}#page=${book.startPage}`} target="_blank" rel="noopener" className={`inline-flex min-h-10 items-center gap-1 rounded-lg border border-line px-2.5 text-xs hover:bg-violet/[0.08] ${FOCUS}`}>
+          <a
+            href={`${book.url}#page=${book.startPage}`}
+            target="_blank"
+            rel="noopener"
+            className={`inline-flex min-h-10 items-center gap-1 rounded-lg border border-line px-2.5 text-xs hover:bg-violet/[0.08] ${FOCUS}`}
+          >
             {c.openBook} <ArrowSquareOut size={12} aria-hidden />
           </a>
         </div>
       </div>
-      <div ref={box} className="h-[70vh] min-h-80 overflow-auto rounded-2xl border border-line bg-white/90 p-1 lg:h-[min(78vh,56rem)]">
+      <div
+        ref={box}
+        className="h-[70vh] min-h-80 overflow-auto rounded-2xl border border-line bg-white/90 p-1 lg:h-[min(78vh,56rem)]"
+      >
         {failed ? (
           <div className="grid h-full place-items-center p-6 text-center text-sm text-slate-700">
             <div className="flex flex-col items-center gap-3">
               <p>{c.bookFailed}</p>
-              <a href={`${book.url}#page=${book.startPage}`} target="_blank" rel="noopener" className={`inline-flex min-h-11 items-center gap-2 rounded-xl bg-purple-600 px-4 font-semibold text-white hover:bg-purple-700 ${FOCUS}`}>
+              <a
+                href={`${book.url}#page=${book.startPage}`}
+                target="_blank"
+                rel="noopener"
+                className={`inline-flex min-h-11 items-center gap-2 rounded-xl bg-purple-600 px-4 font-semibold text-white hover:bg-purple-700 ${FOCUS}`}
+              >
                 {c.openBook} <ArrowSquareOut size={14} aria-hidden />
               </a>
             </div>
@@ -573,7 +698,19 @@ function TextbookReader({ book }: { book: NonNullable<LessonData["textbook"]> })
   );
 }
 
-function PdfPageView({ doc, page, width, ratio, label }: { doc: PdfDoc; page: number; width: number; ratio: number; label: string }) {
+function PdfPageView({
+  doc,
+  page,
+  width,
+  ratio,
+  label,
+}: {
+  doc: PdfDoc;
+  page: number;
+  width: number;
+  ratio: number;
+  label: string;
+}) {
   const holder = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [visible, setVisible] = useState(false);

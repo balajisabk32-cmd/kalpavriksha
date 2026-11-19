@@ -240,3 +240,30 @@ export const studentProgress = pgTable("student_progress", {
   data: jsonb("data").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Chapter explanations (Phase 6)
+// ---------------------------------------------------------------------------
+
+export const EXPLANATION_STATUSES = ["draft", "published"] as const;
+export type ExplanationStatus = (typeof EXPLANATION_STATUSES)[number];
+
+/**
+ * A simple explanation of a chapter with real-life analogies, one per medium.
+ * Written with an AI helper (Gemini) and checked by staff before students see it.
+ * `data` has the shape of `Explanation` in server/explanations.ts.
+ */
+export const chapterExplanations = pgTable(
+  "chapter_explanations",
+  {
+    chapterId: text("chapter_id").notNull(),
+    medium: text("medium", { enum: MEDIUMS }).notNull(),
+    status: text("status", { enum: EXPLANATION_STATUSES }).notNull().default("draft"),
+    data: jsonb("data").notNull(),
+    source: text("source").notNull().default("gemini"),
+    updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.chapterId, t.medium] })],
+);

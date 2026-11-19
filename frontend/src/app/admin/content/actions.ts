@@ -17,6 +17,7 @@ import {
   type PlannedUnit,
 } from "@/server/content";
 import { getDb } from "@/server/db";
+import { deleteExplanation, ExplanationError, saveExplanation, setExplanationStatus } from "@/server/explanations";
 import { MEDIUMS, VIDEO_KINDS } from "@/server/db/schema";
 import { InputError } from "@/server/people";
 import { fileStore } from "@/server/storage";
@@ -165,5 +166,42 @@ export async function setChapterPagesAction(_prev: ContentState, form: FormData)
     return { ok: true };
   } catch (err) {
     return fail(err);
+  }
+}
+
+// --- Chapter explanations (Phase 6) ------------------------------------------
+
+export type ExplainResult = { ok: true; status: "draft" | "published" | null } | { ok: false; error: string };
+
+/** Saves pasted Gemini JSON for one chapter and medium, as a draft or published. */
+export async function saveExplanationAction(input: { chapterId: string; medium: string; raw: string; publish: boolean }): Promise<ExplainResult> {
+  const user = await requireUser(["admin"]);
+  const medium = input.medium === "ta" ? "ta" : "en";
+  if (typeof input.raw !== "string" || input.raw.length > 200_000) return { ok: false, error: "The pasted text is too long." };
+  try {
+    const row = await saveExplanation(await getDb(), { chapterId: String(input.chapterId), medium, raw: input.raw, publish: Boolean(input.publish), userId: user.id });
+    revalidatePath("/admin/content", "layout");
+    return { ok: true, status: row.status };
+  } catch (err) {
+    if (err instanceof ExplanationError) return { ok: false, error: err.message };
+    if (err instanceof InputError) return { ok: false, error: err.code };
+    console.error(err);
+    return { ok: false, error: "server" };
+  }
+}
+
+export async function setExplanationStatusAction(input: { chapterId: string; medium: string; status: "draft" | "published" | "delete" }): Promise<ExplainResult> {
+  await requireUser(["admin"]);
+  const medium = input.medium === "ta" ? "ta" : "en";
+  try {
+    const db = await getDb();
+    if (input.status === "delete") await deleteExplanation(db, String(input.chapterId), medium);
+    else await setExplanationStatus(db, String(input.chapterId), medium, input.status === "published" ? "published" : "draft");
+    revalidatePath("/admin/content", "layout");
+    return { ok: true, status: input.status === "delete" ? null : input.status };
+  } catch (err) {
+    if (err instanceof InputError) return { ok: false, error: err.code };
+    console.error(err);
+    return { ok: false, error: "server" };
   }
 }

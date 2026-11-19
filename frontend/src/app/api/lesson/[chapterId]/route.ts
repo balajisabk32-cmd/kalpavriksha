@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/server/auth/current-user";
 import { chapterMedia, findChapter, getTextbook } from "@/server/content";
 import { getDb } from "@/server/db";
+import { explanationFor } from "@/server/explanations";
 import { watchedFor } from "@/server/learning";
 
 /**
@@ -22,6 +23,8 @@ export async function GET(request: Request, ctx: RouteContext<"/api/lesson/[chap
   const media = await chapterMedia(db, chapterId, medium);
   const other = await chapterMedia(db, chapterId, medium === "en" ? "ta" : "en");
   const book = media.textbook ? await getTextbook(db, media.textbook.id) : null;
+  // Staff see drafts so they can check them in place before publishing.
+  const explanation = await explanationFor(db, chapterId, medium, user.role !== "student");
   const watched = await watchedFor(db, user.id, [...media.videos, ...media.subjectVideos].map((v) => v.id));
 
   return Response.json(
@@ -36,6 +39,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/lesson/[chap
           ? { ...media.textbook, pages: book.pages, url: `/api/textbooks/${book.id}` }
           : null,
       watched,
+      explanation,
     },
     { headers: { "Cache-Control": "private, no-store" } },
   );
