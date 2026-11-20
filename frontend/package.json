@@ -20,6 +20,7 @@
     "textbook:upload-folder": "tsx scripts/upload-textbooks-folder.ts",
     "practice:import": "tsx scripts/import-practice.ts",
     "pages:import": "tsx scripts/import-pages.ts",
+    "practice:links": "tsx scripts/import-practice-links.ts",
     "storage:check": "tsx scripts/storage-check.ts"
   },
   "dependencies": {

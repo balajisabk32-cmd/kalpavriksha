@@ -12,6 +12,7 @@
  */
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { readCsv } from "../src/lib/csv";
 import { textbookTitle } from "../src/lib/textbook-title";
 import { findChapter, listChapterPages, listTextbooks, setChapterPages } from "../src/server/content";
 import { createDatabase } from "../src/server/db/connect";
@@ -20,40 +21,6 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: { "dry-run": { type: "boolean" }, "include-low": { type: "boolean" } },
 });
-
-/** Minimal CSV reader (quoted fields, commas and doubled quotes inside quotes). */
-function readCsv(text: string): Record<string, string>[] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let quoted = false;
-  const src = text.replace(/^\uFEFF/, "");
-  for (let i = 0; i < src.length; i++) {
-    const ch = src[i]!;
-    if (quoted) {
-      if (ch === '"' && src[i + 1] === '"') {
-        field += '"';
-        i++;
-      } else if (ch === '"') quoted = false;
-      else field += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ",") {
-      row.push(field);
-      field = "";
-    }
-    else if (ch === "\n" || ch === "\r") {
-      if (ch === "\r" && src[i + 1] === "\n") i++;
-      row.push(field);
-      field = "";
-      if (row.some((f) => f.trim())) rows.push(row);
-      row = [];
-    } else field += ch;
-  }
-  row.push(field);
-  if (row.some((f) => f.trim())) rows.push(row);
-  const [head, ...body] = rows;
-  return body.map((r) => Object.fromEntries(head!.map((h, i) => [h.trim(), (r[i] ?? "").trim()])));
-}
 
 async function main() {
   const file = positionals[0];
