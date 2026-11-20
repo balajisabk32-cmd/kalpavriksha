@@ -16,6 +16,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
+import { textbookTitle } from "../src/lib/textbook-title";
 import { addTextbook, findSubject, listTextbooks } from "../src/server/content";
 import { createDatabase } from "../src/server/db/connect";
 import { isPdf, pdfPageCount } from "../src/server/pdf";
@@ -26,12 +27,6 @@ const { values, positionals } = parseArgs({
   options: { only: { type: "string" }, "dry-run": { type: "boolean" } },
 });
 
-const SUBJECT_NAME: Record<string, string> = {
-  tamil: "Tamil", english: "English", math: "Mathematics", science: "Science", social: "Social Science",
-  physics: "Physics", chemistry: "Chemistry", "comp-sci": "Computer Science", "comp-app": "Computer Applications",
-  biology: "Biology", botany: "Botany", zoology: "Zoology",
-  commerce: "Commerce", accountancy: "Accountancy", economics: "Economics", "business-math": "Business Mathematics & Statistics",
-};
 
 type Job = { file: string; subjectId: string; medium: "en" | "ta"; term: number | null; title: string };
 
@@ -44,18 +39,12 @@ function plan(root: string): Job[] {
       console.warn(`! Skipped folder ${subjectId}: not a subject in the app`);
       continue;
     }
-    const [, cls, key] = /^c(\d+)-(.+)$/.exec(subjectId)!;
     for (const medium of ["en", "ta"] as const) {
       const dir = path.join(root, subjectId, medium);
       if (!existsSync(dir)) continue;
       for (const leaf of readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".pdf")).sort()) {
-        const term = /^term-(\d)\.pdf$/i.exec(leaf)?.[1];
-        const vol = /^volume-(\d)\.pdf$/i.exec(leaf)?.[1];
-        // Any other name (e.g. bio-botany.pdf) becomes part of the title, so two books of one subject stay apart.
-        const other = !term && !vol && !/^book\.pdf$/i.test(leaf) ? leaf.replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase()) : "";
-        const part = term ? ` — Term ${term}` : vol ? ` — Volume ${vol}` : other ? ` — ${other}` : "";
-        const title = `Class ${cls} ${SUBJECT_NAME[key!] ?? key} (${medium === "ta" ? "Tamil" : "English"} medium)${part}`;
-        jobs.push({ file: path.join(dir, leaf), subjectId, medium, term: term ? Number(term) : null, title });
+        const { title, term } = textbookTitle(subjectId, medium, leaf);
+        jobs.push({ file: path.join(dir, leaf), subjectId, medium, term, title });
       }
     }
   }
