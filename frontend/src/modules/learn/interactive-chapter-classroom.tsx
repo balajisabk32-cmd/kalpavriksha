@@ -41,6 +41,7 @@ import {
 import { Burst } from "@/components/burst";
 import { useLocale } from "@/components/locale-provider";
 import { LessonMedia } from "@/modules/learn/lesson-media";
+import { LessonExercises } from "@/modules/practice/lesson-exercises";
 import { updateProgress, useProgress } from "@/components/progress-store";
 import { KaraokeLines, useReadAloud } from "@/components/read-aloud";
 import { useTheme } from "@/lib/theme";
@@ -1020,6 +1021,7 @@ export function InteractiveChapterClassroom({
 
         {/* Watch & read: the chapter's videos beside its textbook pages. */}
         <LessonMedia key={chapter.id} chapterId={chapter.id} />
+        <LessonExercises key={`ex-${chapter.id}`} chapterId={chapter.id} />
 
         {/* =================================================================== */}
         {/* 2. MAIN 2-COLUMN GRID: CONTENT (8 cols) + RIGHT PANELS (4 cols)    */}

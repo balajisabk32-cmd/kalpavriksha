@@ -18,6 +18,7 @@
     "content:import": "tsx scripts/import-videos.ts",
     "textbook:upload": "tsx scripts/upload-textbook.ts",
     "textbook:upload-folder": "tsx scripts/upload-textbooks-folder.ts",
+    "practice:import": "tsx scripts/import-practice.ts",
     "storage:check": "tsx scripts/storage-check.ts"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "exceljs": "^4.4.0",
     "gsap": "^3.15.0",
     "html2canvas-pro": "^2.6.0",
+    "katex": "^0.16.11",
     "lenis": "^1.3.26",
     "motion": "^14.5.0",
     "next": "^16.3.8",
@@ -41,6 +43,11 @@
     "pg": "^8.23.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-markdown": "^9.0.1",
+    "rehype-katex": "^7.0.1",
+    "remark-breaks": "^4.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0",
     "server-only": "^0.0.1",
     "three": "^0.186.1",
     "zod": "^4.6.7"

@@ -22,7 +22,7 @@ export interface FileStore {
   size(key: string): Promise<number | null>;
   remove(key: string): Promise<void>;
   /** A short-lived direct link (cloud storage only), so the file doesn't pass through our server. */
-  signedUrl?(key: string, seconds: number): Promise<string>;
+  signedUrl?(key: string, seconds: number, contentType?: string): Promise<string>;
 }
 
 const SAFE_KEY = /^[a-z0-9][a-z0-9/_.-]{0,200}$/i;
@@ -114,8 +114,8 @@ async function s3Store(cfg: S3Config): Promise<FileStore> {
     async remove(key) {
       await client.send(new DeleteObjectCommand({ Bucket, Key: checkKey(key) }));
     },
-    async signedUrl(key, seconds) {
-      return getSignedUrl(client, new GetObjectCommand({ Bucket, Key: checkKey(key), ResponseContentType: "application/pdf" }), {
+    async signedUrl(key, seconds, contentType = "application/pdf") {
+      return getSignedUrl(client, new GetObjectCommand({ Bucket, Key: checkKey(key), ResponseContentType: contentType }), {
         expiresIn: seconds,
       });
     },

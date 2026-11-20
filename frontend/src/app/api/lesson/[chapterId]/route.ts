@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/server/auth/current-user";
 import { chapterMedia, findChapter, getTextbook } from "@/server/content";
 import { getDb } from "@/server/db";
+import { subjectLanguage } from "@/lib/subject-language";
 import { explanationFor } from "@/server/explanations";
 import { watchedFor } from "@/server/learning";
 
@@ -18,10 +19,9 @@ export async function GET(request: Request, ctx: RouteContext<"/api/lesson/[chap
   if (user.student && user.student.standard !== found.standard) return Response.json({ error: "forbidden" }, { status: 403 });
 
   const asked = new URL(request.url).searchParams.get("medium");
-  const medium = asked === "ta" || asked === "en" ? asked : (user.student?.medium ?? "en");
+  const medium = subjectLanguage(chapterId) ?? (asked === "ta" || asked === "en" ? asked : (user.student?.medium ?? "en"));
   const db = await getDb();
   const media = await chapterMedia(db, chapterId, medium);
-  const other = await chapterMedia(db, chapterId, medium === "en" ? "ta" : "en");
   const book = media.textbook ? await getTextbook(db, media.textbook.id) : null;
   // Staff see drafts so they can check them in place before publishing.
   const explanation = await explanationFor(db, chapterId, medium, user.role !== "student");
@@ -30,8 +30,8 @@ export async function GET(request: Request, ctx: RouteContext<"/api/lesson/[chap
   return Response.json(
     {
       medium,
-      // Whether the other medium has something different to offer (for the switch).
-      otherMedium: other.videos.some((v) => v.medium !== medium) ? (medium === "en" ? "ta" : "en") : null,
+      // Videos are shared by both mediums, so there is nothing to switch.
+      otherMedium: null,
       videos: media.videos,
       subjectVideos: media.subjectVideos,
       textbook:

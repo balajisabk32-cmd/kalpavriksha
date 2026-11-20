@@ -10,6 +10,7 @@ import type { Database } from "./db/connect";
 import { chapterExplanations, type ExplanationStatus, type Medium } from "./db/schema";
 import { findChapter } from "./content";
 import { InputError } from "./people";
+import { subjectLanguage } from "@/lib/subject-language";
 
 export { explanationSchema, parseExplanation, type Explanation, type ParseResult } from "@/lib/explanation";
 import { explanationSchema, parseExplanation, type Explanation } from "@/lib/explanation";
@@ -103,7 +104,9 @@ export async function getExplanation(db: Database, chapterId: string, medium: Me
  * medium's. Staff (`drafts`) also see drafts so they can review them in place.
  */
 export async function explanationFor(db: Database, chapterId: string, medium: Medium, drafts = false) {
-  for (const m of [medium, medium === "en" ? "ta" : "en"] as const) {
+  const own = subjectLanguage(chapterId);
+  const order: Medium[] = own ? [own] : [medium, medium === "en" ? "ta" : "en"];
+  for (const m of order) {
     const row = await getExplanation(db, chapterId, m);
     if (row && (row.status === "published" || drafts)) return { medium: m, status: row.status, data: row.data };
   }

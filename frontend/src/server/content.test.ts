@@ -201,7 +201,7 @@ describe("content in the database", () => {
     expect(planned[0]).toMatchObject({ chapterId: "c4-science-ch2", match: "title" });
     expect(await saveImport(db, planned, "sheet.xlsx")).toEqual({ units: 1, videos: 1 });
     const media = await chapterMedia(db, "c4-science-ch2", "ta");
-    expect(media.videos.map((v) => [v.youtubeId, v.medium])).toEqual([["5cDF4TC7WCQ", "en"]]); // Tamil student falls back to English
+    expect(media.videos.map((v) => [v.youtubeId, v.medium])).toEqual([["5cDF4TC7WCQ", "en"]]); // videos are shared by both mediums
     const row = (await coverage(db, 4)).find((r) => r.subjectId === "c4-science")!;
     expect(row.withVideo).toEqual({ en: 1, ta: 0 });
   });
@@ -239,6 +239,17 @@ describe("content in the database", () => {
     const media = await chapterMedia(db, "c12-math-ch3", "ta");
     expect(media.videos.map((v) => v.youtubeId)).toEqual(["abcdefghijk"]);
     expect(media.subjectVideos.map((v) => v.playlistId)).toEqual(["PL2qtWkm0Z4ccUeTGJYsmtz3cPNxr4Qqmd"]);
+  });
+
+  it("shows videos from both mediums once each, and language subjects in their own language", async () => {
+    await saveImport(db, await planImport(db, [unit(), unit({ medium: "ta", videos: [unit().videos[0]!, { kind: "qa", title: "Q&A", youtubeId: "qwertyuiopa", playlistId: null, note: null }] })]), "s.xlsx");
+    const media = await chapterMedia(db, "c4-science-ch2", "ta");
+    expect(media.videos.map((v) => v.youtubeId)).toEqual(["5cDF4TC7WCQ", "qwertyuiopa"]);
+    const en = await addTextbook(db, { subjectId: "c4-tamil", medium: "en", term: 1, title: "Tamil (EM copy)", storageKey: "t/a.pdf", sizeBytes: 1, pages: 50 }, null);
+    const ta = await addTextbook(db, { subjectId: "c4-tamil", medium: "ta", term: 1, title: "Tamil", storageKey: "t/b.pdf", sizeBytes: 1, pages: 50 }, null);
+    await setChapterPages(db, "c4-tamil-ch1", en.id, 1, 5);
+    await setChapterPages(db, "c4-tamil-ch1", ta.id, 1, 5);
+    expect((await chapterMedia(db, "c4-tamil-ch1", "en")).textbook?.id).toBe(ta.id);
   });
 
   it("stores textbook pages per chapter and checks the numbers", async () => {

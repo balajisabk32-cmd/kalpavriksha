@@ -1289,9 +1289,8 @@ export function SeniorDigitalLearning({
               <CaretRight size={12} className="text-purple-400 transition-transform group-hover:translate-x-0.5" />
             </button>
 
-            <button
-              type="button"
-              onClick={handleLaunchContinue}
+            <Link
+              href="/practice"
               className="group flex items-center justify-between rounded-xl border border-purple-900/40 bg-purple-950/30 px-3.5 py-2.5 text-left transition-all hover:border-purple-600/50 hover:bg-purple-900/30"
             >
               <div className="flex items-center gap-2.5">
@@ -1299,11 +1298,11 @@ export function SeniorDigitalLearning({
                   <PencilSimple size={16} />
                 </span>
                 <span className="font-display text-xs font-bold text-purple-100 group-hover:text-white">
-                  Practice Questions
+                  {locale === "ta" ? "பயிற்சிகள் & தீர்வுகள்" : "Exercises & Solutions"}
                 </span>
               </div>
               <CaretRight size={12} className="text-purple-400 transition-transform group-hover:translate-x-0.5" />
-            </button>
+            </Link>
 
             <button
               type="button"

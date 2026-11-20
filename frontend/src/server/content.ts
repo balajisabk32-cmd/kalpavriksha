@@ -2,6 +2,7 @@
  * Videos and textbooks per chapter (Phase 2). Every function takes the database
  * first so tests can use an in-memory Postgres.
  */
+import { subjectLanguage } from "@/lib/subject-language";
 import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { getSubjectsForStandard } from "@/lib/curriculum-data";
 import { matchUnits, type ChapterRef } from "./content-match";
@@ -366,15 +367,28 @@ export type ChapterMedia = {
 };
 
 /**
- * Videos and textbook pages for a chapter, in the student's medium first. Falls
- * back to the other medium when there is nothing in theirs.
+ * Videos and textbook pages for a chapter. Videos are shared by both mediums
+ * (the student's own listed first); the textbook is in the student's medium,
+ * falling back to the other. Tamil and English subjects use their own language.
  */
-export async function chapterMedia(db: Database, chapterId: string, medium: Medium): Promise<ChapterMedia> {
+export async function chapterMedia(db: Database, chapterId: string, studentMedium: Medium): Promise<ChapterMedia> {
   const found = findChapter(chapterId);
   if (!found) return { videos: [], subjectVideos: [], textbook: null };
+  // The Tamil and English subjects have one language; everything else follows the medium.
+  const medium = subjectLanguage(chapterId) ?? studentMedium;
   const prefer = <T extends { medium: Medium }>(rows: T[]) => {
     const mine = rows.filter((r) => r.medium === medium);
     return mine.length ? mine : rows;
+  };
+  // Videos are the same for both mediums: show them all, once each, theirs first.
+  const shared = <T extends { medium: Medium; youtubeId: string | null; playlistId: string | null }>(rows: T[]) => {
+    const seen = new Set<string>();
+    return [...rows.filter((r) => r.medium === medium), ...rows.filter((r) => r.medium !== medium)].filter((r) => {
+      const key = r.youtubeId ?? `list:${r.playlistId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   };
   const rows = await db
     .select({
@@ -398,8 +412,8 @@ export async function chapterMedia(db: Database, chapterId: string, medium: Medi
     .innerJoin(textbooks, eq(textbooks.id, chapterPages.textbookId))
     .where(eq(chapterPages.chapterId, chapterId));
   return {
-    videos: prefer(rows.filter((r) => r.chapterId === chapterId)).map(({ unitNo: _u, chapterId: _c, ...v }) => v),
-    subjectVideos: prefer(rows.filter((r) => r.unitNo === null)).map(({ id, title, youtubeId, playlistId, medium: m }) => ({ id, title, youtubeId, playlistId, medium: m })),
+    videos: shared(rows.filter((r) => r.chapterId === chapterId)).map(({ unitNo: _u, chapterId: _c, ...v }) => v),
+    subjectVideos: shared(rows.filter((r) => r.unitNo === null)).map(({ id, title, youtubeId, playlistId, medium: m }) => ({ id, title, youtubeId, playlistId, medium: m })),
     textbook: prefer(pages)[0] ?? null,
   };
 }

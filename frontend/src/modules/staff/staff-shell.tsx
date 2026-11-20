@@ -20,6 +20,7 @@ export function StaffShell({ role, name, children }: { role: "admin" | "teacher"
           { href: "/admin", label: c.nav.overview, exact: true },
           { href: "/admin/students", label: c.nav.students },
           { href: "/admin/content", label: c.nav.content },
+          { href: "/admin/practice", label: c.nav.practice },
           { href: "/admin/staff", label: c.nav.staff },
           { href: "/admin/settings", label: c.nav.settings },
           { href: "/teacher", label: c.nav.classes },

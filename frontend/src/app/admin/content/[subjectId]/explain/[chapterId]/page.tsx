@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ExplainEditor } from "@/modules/staff/explain-editor";
 import { findChapter, listChapterPages, listTextbooks } from "@/server/content";
+import { subjectLanguage } from "@/lib/subject-language";
 import { getDb } from "@/server/db";
 import { explanationPrompt, getExplanation, translationPrompt } from "@/server/explanations";
 
@@ -26,7 +27,7 @@ export default async function ExplainChapterPage(props: PageProps<"/admin/conten
   const side = (medium: "en" | "ta", row: typeof en) => {
     const p = pagesIn(medium);
     // Tamil medium is the English medium translated: once English exists, Tamil is a translation of it.
-    const translate = medium === "ta" && en !== null;
+    const translate = medium === "ta" && en !== null && !subjectLanguage(chapterId);
     return {
       prompt: translate ? translationPrompt(chapterId, en.data) : explanationPrompt(chapterId, medium, p),
       translate,
@@ -44,6 +45,7 @@ export default async function ExplainChapterPage(props: PageProps<"/admin/conten
       chapterNumber={found.chapter.chapterNumber}
       next={found.subject.chapters[found.subject.chapters.findIndex((c) => c.id === chapterId) + 1]?.id ?? null}
       media={{ en: side("en", en), ta: side("ta", ta) }}
+      only={subjectLanguage(chapterId)}
     />
   );
 }

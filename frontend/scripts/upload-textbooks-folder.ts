@@ -29,6 +29,7 @@ const { values, positionals } = parseArgs({
 const SUBJECT_NAME: Record<string, string> = {
   tamil: "Tamil", english: "English", math: "Mathematics", science: "Science", social: "Social Science",
   physics: "Physics", chemistry: "Chemistry", "comp-sci": "Computer Science", "comp-app": "Computer Applications",
+  biology: "Biology", botany: "Botany", zoology: "Zoology",
   commerce: "Commerce", accountancy: "Accountancy", economics: "Economics", "business-math": "Business Mathematics & Statistics",
 };
 
@@ -50,7 +51,9 @@ function plan(root: string): Job[] {
       for (const leaf of readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".pdf")).sort()) {
         const term = /^term-(\d)\.pdf$/i.exec(leaf)?.[1];
         const vol = /^volume-(\d)\.pdf$/i.exec(leaf)?.[1];
-        const part = term ? ` — Term ${term}` : vol ? ` — Volume ${vol}` : "";
+        // Any other name (e.g. bio-botany.pdf) becomes part of the title, so two books of one subject stay apart.
+        const other = !term && !vol && !/^book\.pdf$/i.test(leaf) ? leaf.replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase()) : "";
+        const part = term ? ` — Term ${term}` : vol ? ` — Volume ${vol}` : other ? ` — ${other}` : "";
         const title = `Class ${cls} ${SUBJECT_NAME[key!] ?? key} (${medium === "ta" ? "Tamil" : "English"} medium)${part}`;
         jobs.push({ file: path.join(dir, leaf), subjectId, medium, term: term ? Number(term) : null, title });
       }

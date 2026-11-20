@@ -267,3 +267,79 @@ export const chapterExplanations = pgTable(
   },
   (t) => [primaryKey({ columns: [t.chapterId, t.medium] })],
 );
+
+// ---------------------------------------------------------------------------
+// Exercises & solutions (book-back, exercises 1.1, 1.2 …) — imported content
+// ---------------------------------------------------------------------------
+
+export const PRACTICE_KINDS = ["exercise", "unit", "intext", "bookback", "additional", "misc"] as const;
+export const PRACTICE_STATES = ["done", "help", "right", "wrong"] as const;
+export type PracticeState = (typeof PRACTICE_STATES)[number];
+
+/**
+ * A textbook chapter as the solutions are organised (which can differ from the
+ * app's condensed chapter list). `appChapterId` links it to the app chapter so
+ * the lesson screen can show its exercises.
+ */
+export const practiceChapters = pgTable(
+  "practice_chapters",
+  {
+    id: serial("id").primaryKey(),
+    /** subject|medium|term|folder — unique per book chapter. */
+    key: text("key").notNull().unique(),
+    standard: smallint("standard").notNull(),
+    subjectId: text("subject_id").notNull(),
+    /** Null for Tamil and English, which have one language. */
+    medium: text("medium", { enum: MEDIUMS }),
+    /** History / Geography / Bio-Botany … when one subject has several books. */
+    book: text("book"),
+    term: smallint("term"),
+    number: smallint("number").notNull(),
+    title: text("title").notNull(),
+    appChapterId: text("app_chapter_id"),
+    appChapterManual: boolean("app_chapter_manual").notNull().default(false),
+    status: text("status", { enum: EXPLANATION_STATUSES }).notNull().default("draft"),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [index("practice_chapters_subject").on(t.subjectId, t.medium), index("practice_chapters_app").on(t.appChapterId)],
+);
+
+/** One page of questions: Exercise 1.1, Unit Exercise, Book-back questions … */
+export const practiceSets = pgTable(
+  "practice_sets",
+  {
+    id: serial("id").primaryKey(),
+    chapterId: integer("chapter_id")
+      .notNull()
+      .references(() => practiceChapters.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: PRACTICE_KINDS }).notNull(),
+    number: text("number").notNull().default(""),
+    title: text("title").notNull(),
+    position: integer("position").notNull().default(0),
+    itemCount: integer("item_count").notNull().default(0),
+    mcqCount: integer("mcq_count").notNull().default(0),
+    /** The questions and answers (JSON) in file storage. */
+    storageKey: text("storage_key").notNull(),
+    contentHash: text("content_hash").notNull(),
+    sourcePath: text("source_path").notNull().unique(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("practice_sets_chapter").on(t.chapterId)],
+);
+
+/** How a student did on each question: solved, needs help, or right/wrong for multiple choice. */
+export const practiceProgress = pgTable(
+  "practice_progress",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    setId: integer("set_id")
+      .notNull()
+      .references(() => practiceSets.id, { onDelete: "cascade" }),
+    item: smallint("item").notNull(),
+    state: text("state", { enum: PRACTICE_STATES }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.setId, t.item] })],
+);

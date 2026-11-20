@@ -94,7 +94,10 @@ export function ExplainEditor({
   chapterNumber,
   next,
   media,
+  only = null,
 }: {
+  /** Tamil and English subjects are written in one language only. */
+  only?: Medium | null;
   standard: number;
   subjectId: string;
   subjectName: Localized;
@@ -107,7 +110,7 @@ export function ExplainEditor({
   const { locale } = useLocale();
   const c = COPY[locale];
   const router = useRouter();
-  const [medium, setMedium] = useState<Medium>(media.en.saved && !media.ta.saved ? "ta" : "en");
+  const [medium, setMedium] = useState<Medium>(only ?? (media.en.saved && !media.ta.saved ? "ta" : "en"));
   const side = media[medium];
 
   return (
@@ -118,8 +121,8 @@ export function ExplainEditor({
       </Link>
       <PageHeader title={c.title(chapterNumber, chapterTitle[locale] || chapterTitle.en)} lead={c.lead} />
 
-      <div role="tablist" aria-label={c.lead} className="grid w-full max-w-md grid-cols-2 gap-1 rounded-2xl border border-line bg-surface p-1">
-        {(["en", "ta"] as const).map((m) => (
+      <div role="tablist" aria-label={c.lead} className={`grid w-full max-w-md ${only ? "grid-cols-1" : "grid-cols-2"} gap-1 rounded-2xl border border-line bg-surface p-1`}>
+        {(only ? [only] : (["en", "ta"] as const)).map((m) => (
           <button
             key={m}
             role="tab"
