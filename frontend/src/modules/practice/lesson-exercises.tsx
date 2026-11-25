@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle, ListChecks } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/locale-provider";
+import { ChapterQuiz } from "./chapter-quiz";
 import { PRACTICE_COPY } from "./practice-screen";
 
 type SetSummary = { id: number; kind: string; number: string; title: string; itemCount: number; done: number };
@@ -43,6 +44,7 @@ export function LessonExercises({ chapterId }: { chapterId: string }) {
           {c.title} <ArrowRight size={14} aria-hidden />
         </Link>
       </div>
+      <ChapterQuiz chapterId={chapterId} />
       {chapters.map((ch) => (
         <div key={ch.id}>
           {chapters.length > 1 && (

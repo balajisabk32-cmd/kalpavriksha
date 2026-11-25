@@ -343,3 +343,21 @@ export const practiceProgress = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.setId, t.item] })],
 );
+
+/** One chapter quiz a student finished: 10 multiple-choice questions drawn from the chapter's exercises. */
+export const quizAttempts = pgTable(
+  "quiz_attempts",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** The app chapter (e.g. c10-math-ch3). */
+    chapterId: text("chapter_id").notNull(),
+    medium: text("medium", { enum: MEDIUMS }),
+    total: smallint("total").notNull(),
+    correct: smallint("correct").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("quiz_attempts_user_chapter").on(t.userId, t.chapterId)],
+);
