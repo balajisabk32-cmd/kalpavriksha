@@ -63,6 +63,10 @@ async function main() {
     for (const j of jobs) console.log(`  ${j.subjectId}/${j.medium}  ${j.title}`);
     process.exit(0);
   }
+  if (process.env.DATABASE_URL && !usesCloudStorage()) {
+    console.error("DATABASE_URL is the live database but the STORAGE_* variables are not all set: the books would stay on this PC.");
+    process.exit(1);
+  }
   const db = await createDatabase({ url: process.env.DATABASE_URL, dataDir: ".data/pglite" });
   const store = await fileStore();
   const known = new Map<string, Set<string>>();

@@ -47,6 +47,10 @@ async function main() {
     process.exit(1);
   }
   const dry = Boolean(values["dry-run"]);
+  if (!dry && process.env.DATABASE_URL && !usesCloudStorage()) {
+    console.error("DATABASE_URL is the live database but the STORAGE_* variables are not all set: the files would stay on this PC. Set STORAGE_ENDPOINT, STORAGE_BUCKET, STORAGE_KEY_ID and STORAGE_SECRET.");
+    process.exit(1);
+  }
   const manifest = JSON.parse(readFileSync(path.join(root, "manifest.json"), "utf8")) as { items: ManifestItem[] };
   const items = manifest.items.filter((i) => i.status === "done" && (!values.only || i.relative_path.startsWith(values.only)));
   console.log(`${items.length} pages. ${dry ? "DRY RUN — nothing is saved." : `Storage: ${usesCloudStorage() ? "Backblaze B2" : "local folder"}`}`);
