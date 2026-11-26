@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { mkdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 
@@ -21,6 +21,8 @@ export interface FileStore {
   get(key: string, range?: { start: number; end: number }): Promise<{ body: ReadableStream<Uint8Array>; size: number } | null>;
   size(key: string): Promise<number | null>;
   remove(key: string): Promise<void>;
+  /** Every key under a prefix (e.g. "practice/sets/"), in as few requests as the store allows. */
+  list(prefix: string): Promise<Set<string>>;
   /** A short-lived direct link (cloud storage only), so the file doesn't pass through our server. */
   signedUrl?(key: string, seconds: number, contentType?: string): Promise<string>;
 }
@@ -56,6 +58,15 @@ function localStore(root: string): FileStore {
     async remove(key) {
       await rm(fileOf(key), { force: true });
     },
+    async list(prefix) {
+      const dir = path.join(root, checkKey(prefix.replace(/\/$/, "")));
+      try {
+        const names = await readdir(dir, { recursive: true });
+        return new Set(names.map((n) => `${prefix.replace(/\/$/, "")}/${String(n).split(path.sep).join("/")}`));
+      } catch {
+        return new Set();
+      }
+    },
   };
 }
 
@@ -70,7 +81,7 @@ function s3Config(env: NodeJS.ProcessEnv = process.env): S3Config | null {
 }
 
 async function s3Store(cfg: S3Config): Promise<FileStore> {
-  const { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+  const { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = await import("@aws-sdk/client-s3");
   const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
   const client = new S3Client({
     endpoint: cfg.endpoint,
@@ -113,6 +124,16 @@ async function s3Store(cfg: S3Config): Promise<FileStore> {
     },
     async remove(key) {
       await client.send(new DeleteObjectCommand({ Bucket, Key: checkKey(key) }));
+    },
+    async list(prefix) {
+      const keys = new Set<string>();
+      let token: string | undefined;
+      do {
+        const res = await client.send(new ListObjectsV2Command({ Bucket, Prefix: checkKey(prefix), ContinuationToken: token, MaxKeys: 1000 }));
+        for (const o of res.Contents ?? []) if (o.Key) keys.add(o.Key);
+        token = res.IsTruncated ? res.NextContinuationToken : undefined;
+      } while (token);
+      return keys;
     },
     async signedUrl(key, seconds, contentType = "application/pdf") {
       return getSignedUrl(client, new GetObjectCommand({ Bucket, Key: checkKey(key), ResponseContentType: contentType }), {

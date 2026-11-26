@@ -5,7 +5,8 @@
  *   npm run practice:import -- "C:\…\content" --only class-10     (one class)
  *   npm run practice:import -- "C:\…\content" --publish           (students see it straight away)
  *
- * Unchanged files are skipped, so it can be run again after more content is fetched.
+ * Unchanged pages already in storage are skipped, so it can be run again after more
+ * content is fetched, or after it stopped part-way (no --force needed).
  * Needs DATABASE_URL and the STORAGE_* variables for the live site.
  */
 import { createHash } from "node:crypto";
@@ -58,7 +59,10 @@ async function main() {
   const db = dry ? null : await createDatabase({ url: process.env.DATABASE_URL, dataDir: ".data/pglite" });
   const store = dry ? null : await fileStore();
   const hashes = db ? await knownHashes(db) : new Map<string, string>();
-  const uploaded = new Set<string>();
+  // What is already in storage, listed once (a few requests instead of one per file).
+  const storedSets = store ? await store.list("practice/sets/") : new Set<string>();
+  const uploaded = store ? await store.list("practice/assets/") : new Set<string>();
+  if (store) console.log(`Already in storage: ${storedSets.size} pages, ${uploaded.size} images.`);
 
   const skipped = new Map<string, number>();
   const unmatched = new Map<string, string>();
@@ -116,7 +120,9 @@ async function main() {
     if (dry || !db || !store) return;
 
     const contentHash = sha(`${PARSER_VERSION}|${md}`);
-    if (!values.force && hashes.get(it.relative_path) === contentHash) {
+    const storageKey = `practice/sets/${sha(it.relative_path).slice(0, 24)}.json`;
+    // Unchanged and its file is in storage: nothing to do (so an interrupted run carries on where it stopped).
+    if (!values.force && hashes.get(it.relative_path) === contentHash && storedSets.has(storageKey)) {
       unchanged++;
       return;
     }
@@ -133,13 +139,11 @@ async function main() {
       const data = new Uint8Array(readFileSync(local));
       const ext = (path.extname(local).slice(1) || "png").toLowerCase();
       const name = `${sha(data).slice(0, 20)}.${ext}`;
-      if (!uploaded.has(name)) {
-        uploaded.add(name);
-        // Images are named by their content: one already in storage never needs uploading again.
-        if ((await store.size(`practice/assets/${name}`)) === null) {
-          await store.put(`practice/assets/${name}`, data, TYPES[ext] ?? "application/octet-stream");
-          images++;
-        }
+      // Images are named by their content: one already in storage never needs uploading again.
+      if (!uploaded.has(`practice/assets/${name}`)) {
+        uploaded.add(`practice/assets/${name}`);
+        await store.put(`practice/assets/${name}`, data, TYPES[ext] ?? "application/octet-stream");
+        images++;
       }
       urls.set(ref, `/api/practice/asset/${name}`);
     }
@@ -150,7 +154,6 @@ async function main() {
       items: s.items.map((q) => ({ ...q, q: fix(q.q), a: fix(q.a), mcq: q.mcq ? { ...q.mcq, options: q.mcq.options.map((o) => ({ ...o, text: fix(o.text) })) } : undefined })),
     }));
     const stored: StoredSet = { title: page.title, sections };
-    const storageKey = `practice/sets/${sha(it.relative_path).slice(0, 24)}.json`;
     await store.put(storageKey, new TextEncoder().encode(JSON.stringify(stored)), "application/json");
     await savePracticeSet(db, {
       placed,
