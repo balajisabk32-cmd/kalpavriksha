@@ -69,7 +69,7 @@ export function ExplanationView({
   const { locale } = useLocale();
   const c = COPY[locale];
   return (
-    <section aria-labelledby="explain-title" className="flex flex-col gap-4 rounded-3xl border border-line bg-surface/85 p-4 sm:p-6">
+    <section aria-labelledby="explain-title" className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4 sm:p-6">
       <div>
         <h2 id="explain-title" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight">
           <Sparkle size={22} weight="fill" aria-hidden className="text-violet" />

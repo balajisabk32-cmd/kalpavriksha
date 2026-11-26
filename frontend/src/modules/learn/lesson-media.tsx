@@ -152,7 +152,7 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
 
   if (state.status === "loading") {
     return (
-      <section aria-busy="true" className="rounded-3xl border border-line bg-surface/80 p-4 sm:p-6">
+      <section aria-busy="true" className="rounded-2xl border border-line bg-surface p-4 sm:p-6">
         <span className="sr-only">{c.loading}</span>
         <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
           <div className="aspect-video animate-pulse rounded-2xl bg-line/60 motion-reduce:animate-none" />
@@ -165,7 +165,7 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
     return (
       <section
         role="alert"
-        className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-line bg-surface/80 p-4 text-sm sm:p-6"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-4 text-sm sm:p-6"
       >
         <span>{c.failed}</span>
         <button
@@ -195,7 +195,7 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
   if (!hasVideo && !data.textbook) {
     if (explanation) return explanation;
     return (
-      <section className="flex items-center gap-3 rounded-3xl border border-dashed border-line bg-surface/60 p-4 text-sm text-muted sm:p-5">
+      <section className="flex items-center gap-3 rounded-2xl border border-dashed border-line bg-surface p-4 text-sm text-muted sm:p-5">
         <VideoCamera size={22} aria-hidden className="shrink-0 text-violet" />
         <span>{c.noVideo}</span>
       </section>
@@ -227,7 +227,7 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
       {explanation}
       <section
         aria-labelledby={`${tabsId}-title`}
-        className="flex flex-col gap-4 rounded-3xl border border-line bg-surface/85 p-4 sm:p-6"
+        className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4 sm:p-6"
       >
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

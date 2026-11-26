@@ -1388,7 +1388,7 @@ function CurriculumLessonDialog(props: {
         role="dialog"
         aria-modal="true"
         aria-label={detail.status === "error" ? copy.failed : copy.opening}
-        className="visible fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        className="visible fixed inset-0 z-50 flex items-center justify-center bg-bg p-4"
       >
         {detail.status === "error" ? (
           <div role="alert" className="flex max-w-sm flex-col items-center gap-4 rounded-3xl border border-line bg-surface p-6 text-center text-text shadow-2xl">

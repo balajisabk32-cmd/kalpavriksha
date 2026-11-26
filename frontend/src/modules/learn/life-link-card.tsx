@@ -59,7 +59,7 @@ export function LifeLinkCard({ concept, compact = false }: { concept: LifeLinkCo
   return (
     <section
       aria-labelledby={titleId}
-      className={`relative overflow-hidden rounded-2xl border border-line bg-surface/80 text-text shadow-sm ${
+      className={`relative overflow-hidden rounded-2xl border border-line bg-surface text-text shadow-sm ${
         compact ? "p-4" : "p-5 sm:p-6"
       }`}
     >

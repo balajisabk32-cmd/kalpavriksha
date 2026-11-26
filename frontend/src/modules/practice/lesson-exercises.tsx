@@ -34,7 +34,7 @@ export function LessonExercises({ chapterId }: { chapterId: string }) {
   const label = (s: SetSummary) => (s.kind === "exercise" ? `${c.kinds.exercise} ${s.number}` : s.kind === "unit" ? `${c.kinds.unit} ${s.number}` : s.kind === "bookback" && s.title !== "Book-back questions" ? s.title : (c.kinds[s.kind] ?? s.title));
 
   return (
-    <section aria-labelledby={`ex-${chapterId}`} className="flex flex-col gap-3 rounded-3xl border border-line bg-surface/85 p-4 sm:p-6">
+    <section aria-labelledby={`ex-${chapterId}`} className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h2 id={`ex-${chapterId}`} className="flex items-center gap-2 font-display text-xl font-bold tracking-tight">
           <ListChecks size={22} aria-hidden className="text-violet" />
