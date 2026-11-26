@@ -10,7 +10,7 @@ export const explanationSchema = z.object({
     .array(
       z.object({
         heading: line(200),
-        explanation: line(4000),
+        explanation: line(6000),
         analogy: z.object({ title: line(200), story: line(3000) }),
         example: z.string().trim().max(1500).optional(),
       }),
@@ -19,7 +19,7 @@ export const explanationSchema = z.object({
     .max(12),
   keyPoints: z.array(line(400)).min(1).max(15),
   checkYourself: z
-    .array(z.object({ question: line(500), answer: line(1500) }))
+    .array(z.object({ question: line(1000), answer: line(2500) }))
     .max(10)
     .default([]),
   words: z
