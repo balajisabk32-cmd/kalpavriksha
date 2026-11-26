@@ -173,7 +173,7 @@ export function ThemeToggle({
       onClick={toggleWithTransition}
       aria-label={label}
       title={label}
-      className={`group relative flex items-center justify-center gap-2 rounded-xl border border-line bg-surface/60 text-muted backdrop-blur-md transition-all duration-200 hover:border-violet/40 hover:bg-surface hover:text-text active:scale-[0.96] ${
+      className={`group relative flex items-center justify-center gap-2 rounded-xl border border-line bg-surface text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet ${
         showLabel ? "h-11 px-3.5 font-mono text-[13.5px]" : "size-11"
       } ${className}`}
       {...props}

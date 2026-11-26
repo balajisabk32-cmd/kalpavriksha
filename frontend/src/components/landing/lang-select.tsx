@@ -92,12 +92,7 @@ export function LangSelect({ className = "", ...props }: { className?: string; "
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={t.language}
-        className="group flex h-11 items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 font-mono text-[13px] text-text transition-all duration-200 hover:border-violet/40 hover:bg-violet-deep/30 hover:text-violet-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-violet/50 active:scale-[0.98]"
-        style={{
-          background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(76,29,149,0.15) 100%)",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)",
-          minWidth: "100px",
-        }}
+        className="group flex h-11 min-w-[6.25rem] items-center gap-2 rounded-xl border border-line bg-surface px-3.5 text-sm font-medium text-text transition-colors duration-150 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet"
         {...props}
       >
         <Globe size={16} weight="regular" className="text-violet group-hover:text-violet-bright transition-colors shrink-0" aria-hidden />

@@ -1,216 +1,31 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   ArrowRight,
-  BookOpen,
-  CaretLeft,
+  Atom,
+  BookOpenText,
   CaretRight,
-  Check,
-  Compass,
-  DownloadSimple,
-  FileText,
-  GraduationCap,
-  House,
-  Moon,
+  ChartLineUp,
+  CheckCircle,
+  Code,
+  Dna,
+  Flask,
+  GlobeHemisphereEast,
+  IdentificationCard,
+  ListChecks,
+  MathOperations,
   PencilSimple,
-  Play,
-  Sparkle,
-  Star,
-  Sun,
-  Trophy,
-  ArrowClockwise,
-  Quotes,
+  TestTube,
+  Translate,
 } from "@phosphor-icons/react/ssr";
+import type { Icon } from "@phosphor-icons/react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { useLocale } from "@/components/locale-provider";
 import { useProgress } from "@/components/progress-store";
-import { useTheme } from "@/lib/theme";
 import type { Profile } from "@/lib/progress";
 import { SENIOR_GROUPS, type ChapterOutline, type SubjectOutline } from "@/lib/curriculum";
-import { MODULES } from "@/modules/registry";
-import { accentOf } from "@/modules/accents";
 import { ReviewHub } from "./review-hub";
-
-interface EncouragementQuote {
-  quote: { en: string; ta: string };
-  author: { en: string; ta: string };
-  role?: { en: string; ta: string };
-}
-
-const DAILY_ENCOURAGEMENT_QUOTES: readonly EncouragementQuote[] = [
-  {
-    quote: {
-      en: "Learning gives creativity, creativity leads to thinking, thinking provides knowledge, and knowledge makes you great.",
-      ta: "கற்றல் படைப்பாற்றலைத் தருகிறது, படைப்பாற்றல் சிந்தனையை வளர்க்கிறது, சிந்தனை அறிவைத் தருகிறது, அறிவு உங்களை உயர்ந்தவராக்குகிறது.",
-    },
-    author: {
-      en: "Dr. A.P.J. Abdul Kalam",
-      ta: "டாக்டர் ஏ.பி.ஜே. அப்துல் கலாம்",
-    },
-    role: {
-      en: "11th President of India",
-      ta: "இந்தியாவின் 11-வது குடியரசுத் தலைவர்",
-    },
-  },
-  {
-    quote: {
-      en: "Arise, awake, and stop not until the goal is reached.",
-      ta: "எழுமின், விழுமின், உங்கள் இலக்கை அடையும் வரை ஓயாது உழையுங்கள்.",
-    },
-    author: {
-      en: "Swami Vivekananda",
-      ta: "சுவாமி விவேகானந்தர்",
-    },
-    role: {
-      en: "Youth Icon & Philosopher",
-      ta: "தத்துவஞானி",
-    },
-  },
-  {
-    quote: {
-      en: "Education is the most powerful weapon which you can use to change the world.",
-      ta: "உலகையே மாற்றி அமைப்பதற்கு நீங்கள் பயன்படுத்தக்கூடிய மிக சக்திவாய்ந்த ஆயுதம் கல்வி.",
-    },
-    author: {
-      en: "Nelson Mandela",
-      ta: "நெல்சன் மண்டேலா",
-    },
-    role: {
-      en: "Nobel Peace Laureate",
-      ta: "நோபல் அமைதிப் பரிசு பெற்றவர்",
-    },
-  },
-  {
-    quote: {
-      en: "The beautiful thing about learning is that no one can take it away from you.",
-      ta: "கற்றலின் மிக அழகான விஷயம் என்னவென்றால், அதை உங்களிடமிருந்து எவராலும் பறிக்க முடியாது.",
-    },
-    author: {
-      en: "B.B. King",
-      ta: "பி.பி. கிங்",
-    },
-    role: {
-      en: "Legendary Musician",
-      ta: "இசை மேதை",
-    },
-  },
-  {
-    quote: {
-      en: "Learning is excellence that never perishes; all other wealth is not true wealth.",
-      ta: "கேடில் விழுச்செல்வம் கல்வி யொருவற்கு மாடல்ல மற்றை யவை.",
-    },
-    author: {
-      en: "Thiruvalluvar",
-      ta: "திருவள்ளுவர் (திருக்குறள் 400)",
-    },
-    role: {
-      en: "Ancient Tamil Sage",
-      ta: "தெய்வப் புலவர்",
-    },
-  },
-  {
-    quote: {
-      en: "Live as if you were to die tomorrow. Learn as if you were to live forever.",
-      ta: "நாளை இறந்துவிடுவீர்கள் என்பது போல் வாழுங்கள். என்றும் வாழ்வீர்கள் என்பது போல் கற்றுக்கொள்ளுங்கள்.",
-    },
-    author: {
-      en: "Mahatma Gandhi",
-      ta: "மகாத்மா காந்தி",
-    },
-    role: {
-      en: "Father of the Nation",
-      ta: "தேசப்பிதா",
-    },
-  },
-  {
-    quote: {
-      en: "Cultivation of mind should be the ultimate aim of human existence.",
-      ta: "மனதைப் பண்படுத்துவதே மனித வாழ்வின் தலையாய நோக்கமாக இருக்க வேண்டும்.",
-    },
-    author: {
-      en: "Dr. B.R. Ambedkar",
-      ta: "டாக்டர் பாபாசாகேப் அம்பேத்கர்",
-    },
-    role: {
-      en: "Architect of Constitution",
-      ta: "இந்திய அரசியலமைப்பின் தந்தை",
-    },
-  },
-  {
-    quote: {
-      en: "Wisdom is not a product of schooling, but of the lifelong attempt to acquire it.",
-      ta: "ஞானம் என்பது வெறும் பள்ளிப் படிப்பின் விளைவு அல்ல, வாழ்நாள் முழுவதும் அதை அடையும் முயற்சியின் பயன்.",
-    },
-    author: {
-      en: "Albert Einstein",
-      ta: "ஆல்பர்ட் ஐன்ஸ்டீன்",
-    },
-    role: {
-      en: "Theoretical Physicist",
-      ta: "நோபல் பரிசு பெற்ற விஞ்ஞானி",
-    },
-  },
-  {
-    quote: {
-      en: "Study with clarity and pure devotion; the light of knowledge shall illuminate every horizon.",
-      ta: "கற்க கசடறக் கற்பவை கற்றபின்; அறிவின் பெருமையால் உலகம் மேன்மையடையும்.",
-    },
-    author: {
-      en: "Mahakavi Bharathiyar",
-      ta: "மகாகவி பாரதியார்",
-    },
-    role: {
-      en: "Poet & Freedom Fighter",
-      ta: "விடுதலைக் கவிஞர்",
-    },
-  },
-  {
-    quote: {
-      en: "Ask the right questions, and nature will open the doors to all her secrets.",
-      ta: "சரியான கேள்விகளைக் கேளுங்கள், இயற்கை தனது ரகசியங்களுக்கான அனைத்துக் கதவுகளையும் திறக்கும்.",
-    },
-    author: {
-      en: "Sir C.V. Raman",
-      ta: "சர் சி.வி. ராமன்",
-    },
-    role: {
-      en: "Nobel Laureate in Physics",
-      ta: "நோபல் பரிசு பெற்ற விஞ்ஞானி",
-    },
-  },
-  {
-    quote: {
-      en: "Optimism is the faith that leads to achievement. Nothing can be done without hope and confidence.",
-      ta: "நம்பிக்கையே சாதனையை நோக்கி வழிநடத்தும் ஒளி; தன்னம்பிக்கையின்றி உலகில் எதையும் சாதிக்க முடியாது.",
-    },
-    author: {
-      en: "Helen Keller",
-      ta: "ஹெலன் கெல்லர்",
-    },
-    role: {
-      en: "Author & Activist",
-      ta: "எழுத்தாளர் & சமூகப் போராளி",
-    },
-  },
-  {
-    quote: {
-      en: "You cannot cross the sea merely by standing and staring at the water.",
-      ta: "கரையில் நின்று தண்ணீரைப் பார்த்துக் கொண்டிருப்பதால் மட்டும் நீங்கள் கடலைக் கடந்துவிட முடியாது.",
-    },
-    author: {
-      en: "Rabindranath Tagore",
-      ta: "ரவீந்திரநாத் தாகூர்",
-    },
-    role: {
-      en: "Nobel Laureate in Literature",
-      ta: "நோபல் பரிசு பெற்ற கவிஞர்",
-    },
-  },
-];
 
 interface SeniorDigitalLearningProps {
   currentStandard: number;
@@ -221,11 +36,7 @@ interface SeniorDigitalLearningProps {
   onOpenChapter: (chapterId: string) => void;
   onOpenStandardSwitcher?: () => void;
   onSelectStandard?: (std: number) => void;
-  continueRecord: {
-    subject: SubjectOutline;
-    chapter: ChapterOutline;
-    isStarter: boolean;
-  } | null;
+  continueRecord: { subject: SubjectOutline; chapter: ChapterOutline; isStarter: boolean } | null;
   totalChapters: number;
   completedChaptersCount: number;
   seniorGroupFilter?: string;
@@ -233,1168 +44,229 @@ interface SeniorDigitalLearningProps {
   profile?: Profile;
 }
 
-const CLASS_ITEMS = [
-  { std: 1, label: "Class 1", image: "/images/learn/class-1-art.png" },
-  { std: 2, label: "Class 2", image: "/images/learn/class-2-art.png" },
-  { std: 3, label: "Class 3", image: "/images/learn/class-3-art.png" },
-  { std: 4, label: "Class 4", image: "/images/learn/class-4-art.png" },
-  { std: 5, label: "Class 5", image: "/images/learn/class-5-art.png" },
-  { std: 6, label: "Class 6", image: "/images/learn/class-6-art.png" },
-  { std: 7, label: "Class 7", image: "/images/learn/class-7-shapes.png" },
-  { std: 8, label: "Class 8", image: "/images/learn/class-8-armillary.png" },
-  { std: 9, label: "Class 9", image: "/images/learn/class-9-books.png" },
-  { std: 10, label: "Class 10", image: "/images/learn/class-10-compass.png" },
-  { std: 11, label: "Class 11", image: "/images/learn/class-11-molecule.png" },
-  { std: 12, label: "Class 12", image: "/images/learn/class-12-trophy.png" },
-];
+const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
-function getSubjectVisual(sub: SubjectOutline) {
-  const id = sub.id.toLowerCase();
-  const code = (sub.code || "").toUpperCase();
+const SUBJECT_ICON: Record<SubjectOutline["icon"], Icon> = {
+  tamil: Translate,
+  english: Translate,
+  math: MathOperations,
+  science: Flask,
+  social: GlobeHemisphereEast,
+  physics: Atom,
+  chemistry: TestTube,
+  biology: Dna,
+  computer: Code,
+  commerce: ChartLineUp,
+};
 
-  // 1. Tamil
-  if (id.includes("tamil") || code.startsWith("TAM")) {
-    return {
-      image: "/images/learn/subject-tamil-scroll.png",
-      gradient: "from-[#280f2d]/85 to-[#16081e]/90",
-      borderClass: "border-pink-900/35 hover:border-pink-600/50",
-      activeBorderClass: "border-pink-500 shadow-[0_0_22px_rgba(236,72,153,0.35)] ring-1 ring-pink-400",
-      subtextColor: "text-pink-300/80",
-      tagline: "அறிவு வளர்ச்சி",
-      btnBorder: "border-pink-700/50",
-      btnBg: "bg-pink-950/40",
-      btnHoverBg: "group-hover:bg-pink-900/50",
-      btnText: "text-pink-200 group-hover:text-white",
-    };
-  }
+const COPY = {
+  en: {
+    hello: (n: string) => `Vanakkam, ${n}`,
+    klass: (n: number) => `Class ${n}`,
+    changeClass: "Change class",
+    continueTitle: "Continue where you stopped",
+    startTitle: "Start here",
+    chapterOf: (n: number, t: string) => `Chapter ${n}: ${t}`,
+    continue: "Continue",
+    start: "Start",
+    done: (d: number, t: number) => `${d} of ${t} chapters done`,
+    exercises: "Exercises & solutions",
+    exercisesHint: "Every sum, step by step",
+    card: "My learner card",
+    cardHint: "Your profile and progress",
+    subjects: "Subjects",
+    chapters: (n: number) => `${n} chapters`,
+    minutes: (n: number) => `${n} min`,
+    questions: (n: number) => `${n} questions`,
+    finished: "Done",
+    empty: "No chapters here yet.",
+  },
+  ta: {
+    hello: (n: string) => `வணக்கம், ${n}`,
+    klass: (n: number) => `வகுப்பு ${n}`,
+    changeClass: "வகுப்பை மாற்று",
+    continueTitle: "நிறுத்திய இடத்திலிருந்து தொடருங்கள்",
+    startTitle: "இங்கே தொடங்குங்கள்",
+    chapterOf: (n: number, t: string) => `பாடம் ${n}: ${t}`,
+    continue: "தொடர்",
+    start: "தொடங்கு",
+    done: (d: number, t: number) => `${t} பாடங்களில் ${d} முடிந்தது`,
+    exercises: "பயிற்சிகளும் தீர்வுகளும்",
+    exercisesHint: "ஒவ்வொரு கணக்கும் படிப்படியாக",
+    card: "என் கற்றல் அட்டை",
+    cardHint: "உங்கள் சுயவிவரமும் முன்னேற்றமும்",
+    subjects: "பாடப்பிரிவுகள்",
+    chapters: (n: number) => `${n} பாடங்கள்`,
+    minutes: (n: number) => `${n} நிமி`,
+    questions: (n: number) => `${n} வினாக்கள்`,
+    finished: "முடிந்தது",
+    empty: "இங்கே இன்னும் பாடங்கள் இல்லை.",
+  },
+} as const;
 
-  // 2. English
-  if (id.includes("english") || code.startsWith("ENG")) {
-    return {
-      image: "/images/learn/subject-english-books.png",
-      gradient: "from-[#0f1d38]/85 to-[#0a1224]/90",
-      borderClass: "border-sky-900/35 hover:border-sky-600/50",
-      activeBorderClass: "border-sky-500 shadow-[0_0_22px_rgba(56,189,248,0.35)] ring-1 ring-sky-400",
-      subtextColor: "text-sky-300/80",
-      tagline: "Language & Literature",
-      btnBorder: "border-sky-700/50",
-      btnBg: "bg-sky-950/40",
-      btnHoverBg: "group-hover:bg-sky-900/50",
-      btnText: "text-sky-200 group-hover:text-white",
-    };
-  }
-
-  // 2b. Biology (11th & 12th Bio-Maths)
-  if (id.includes("biology") || code.startsWith("BIO")) {
-    return {
-      image: "/images/learn/subject-science-micro.png",
-      gradient: "from-[#0c2a1c]/85 to-[#06180f]/90",
-      borderClass: "border-emerald-900/35 hover:border-emerald-500/50",
-      activeBorderClass: "border-emerald-400 shadow-[0_0_22px_rgba(52,211,153,0.35)] ring-1 ring-emerald-300",
-      subtextColor: "text-emerald-300/80",
-      tagline: "Cell, Genetics, Anatomy & Life Systems",
-      btnBorder: "border-emerald-700/50",
-      btnBg: "bg-emerald-950/40",
-      btnHoverBg: "group-hover:bg-emerald-900/50",
-      btnText: "text-emerald-200 group-hover:text-white",
-    };
-  }
-
-  // 2c. Botany (11th & 12th Pure Science)
-  if (id.includes("botany") || code.startsWith("BOT")) {
-    return {
-      image: "/images/learn/subject-science-micro.png",
-      gradient: "from-[#0b2b24]/85 to-[#051914]/90",
-      borderClass: "border-teal-900/35 hover:border-teal-500/50",
-      activeBorderClass: "border-teal-400 shadow-[0_0_22px_rgba(45,212,191,0.35)] ring-1 ring-teal-300",
-      subtextColor: "text-teal-300/80",
-      tagline: "Plant Morphology, Anatomy & Biotech",
-      btnBorder: "border-teal-700/50",
-      btnBg: "bg-teal-950/40",
-      btnHoverBg: "group-hover:bg-teal-900/50",
-      btnText: "text-teal-200 group-hover:text-white",
-    };
-  }
-
-  // 2d. Zoology (11th & 12th Pure Science)
-  if (id.includes("zoology") || code.startsWith("ZOO")) {
-    return {
-      image: "/images/learn/subject-science-micro.png",
-      gradient: "from-[#092236]/85 to-[#051320]/90",
-      borderClass: "border-cyan-900/35 hover:border-cyan-500/50",
-      activeBorderClass: "border-cyan-400 shadow-[0_0_22px_rgba(34,211,238,0.35)] ring-1 ring-cyan-300",
-      subtextColor: "text-cyan-300/80",
-      tagline: "Animal Physiology, Genetics & Ecology",
-      btnBorder: "border-cyan-700/50",
-      btnBg: "bg-cyan-950/40",
-      btnHoverBg: "group-hover:bg-cyan-900/50",
-      btnText: "text-cyan-200 group-hover:text-white",
-    };
-  }
-
-  // 3. Physics (11th & 12th)
-  if (id.includes("physics") || code.startsWith("PHY")) {
-    return {
-      image: "/images/learn/class-11-molecule.png",
-      gradient: "from-[#0b243d]/85 to-[#051424]/90",
-      borderClass: "border-cyan-900/35 hover:border-cyan-500/50",
-      activeBorderClass: "border-cyan-400 shadow-[0_0_22px_rgba(34,211,238,0.35)] ring-1 ring-cyan-300",
-      subtextColor: "text-cyan-300/80",
-      tagline: "Forces, Waves & Cosmos",
-      btnBorder: "border-cyan-700/50",
-      btnBg: "bg-cyan-950/40",
-      btnHoverBg: "group-hover:bg-cyan-900/50",
-      btnText: "text-cyan-200 group-hover:text-white",
-    };
-  }
-
-  // 4. Chemistry (11th & 12th)
-  if (id.includes("chemistry") || code.startsWith("CHE")) {
-    return {
-      image: "/images/learn/subject-science-micro.png",
-      gradient: "from-[#0a2e28]/85 to-[#051c18]/90",
-      borderClass: "border-teal-900/35 hover:border-teal-500/50",
-      activeBorderClass: "border-teal-400 shadow-[0_0_22px_rgba(45,212,191,0.35)] ring-1 ring-teal-300",
-      subtextColor: "text-teal-300/80",
-      tagline: "Elements & Molecular Reactions",
-      btnBorder: "border-teal-700/50",
-      btnBg: "bg-teal-950/40",
-      btnHoverBg: "group-hover:bg-teal-900/50",
-      btnText: "text-teal-200 group-hover:text-white",
-    };
-  }
-
-  // 5. Computer Science (11th & 12th CS Group)
-  if (id.includes("csc") || id.includes("computer-science") || code.startsWith("CSC")) {
-    return {
-      image: "/images/learn/universe-quiz.png",
-      gradient: "from-[#0d2a1d]/85 to-[#061810]/90",
-      borderClass: "border-emerald-900/35 hover:border-emerald-500/50",
-      activeBorderClass: "border-emerald-400 shadow-[0_0_22px_rgba(52,211,153,0.35)] ring-1 ring-emerald-300",
-      subtextColor: "text-emerald-300/80",
-      tagline: "Python, OOP & Data Structures",
-      btnBorder: "border-emerald-700/50",
-      btnBg: "bg-emerald-950/40",
-      btnHoverBg: "group-hover:bg-emerald-900/50",
-      btnText: "text-emerald-200 group-hover:text-white",
-    };
-  }
-
-  // 6. Commerce (11th & 12th Commerce Group)
-  if (id.includes("commerce") || code.startsWith("COM")) {
-    return {
-      image: "/images/learn/class-12-trophy.png",
-      gradient: "from-[#312010]/85 to-[#1c1107]/90",
-      borderClass: "border-amber-900/35 hover:border-amber-500/50",
-      activeBorderClass: "border-amber-400 shadow-[0_0_22px_rgba(251,191,36,0.35)] ring-1 ring-amber-300",
-      subtextColor: "text-amber-300/80",
-      tagline: "Trade, Banking & Management",
-      btnBorder: "border-amber-700/50",
-      btnBg: "bg-amber-950/40",
-      btnHoverBg: "group-hover:bg-amber-900/50",
-      btnText: "text-amber-200 group-hover:text-white",
-    };
-  }
-
-  // 7. Accountancy (11th & 12th)
-  if (id.includes("account") || code.startsWith("ACC")) {
-    return {
-      image: "/images/learn/subject-math-calc.png",
-      gradient: "from-[#1b153b]/85 to-[#0e0b21]/90",
-      borderClass: "border-indigo-900/35 hover:border-indigo-500/50",
-      activeBorderClass: "border-indigo-400 shadow-[0_0_22px_rgba(129,140,248,0.35)] ring-1 ring-indigo-300",
-      subtextColor: "text-indigo-300/80",
-      tagline: "Ledger, P&L & Balance Sheet",
-      btnBorder: "border-indigo-700/50",
-      btnBg: "bg-indigo-950/40",
-      btnHoverBg: "group-hover:bg-indigo-900/50",
-      btnText: "text-indigo-200 group-hover:text-white",
-    };
-  }
-
-  // 8. Economics (11th & 12th)
-  if (id.includes("economic") || code.startsWith("ECO")) {
-    return {
-      image: "/images/learn/subject-social-globe.png",
-      gradient: "from-[#30161a]/85 to-[#1a0a0d]/90",
-      borderClass: "border-rose-900/35 hover:border-rose-500/50",
-      activeBorderClass: "border-rose-400 shadow-[0_0_22px_rgba(251,113,133,0.35)] ring-1 ring-rose-300",
-      subtextColor: "text-rose-300/80",
-      tagline: "National Income, Fiscal & Markets",
-      btnBorder: "border-rose-700/50",
-      btnBg: "bg-rose-950/40",
-      btnHoverBg: "group-hover:bg-rose-900/50",
-      btnText: "text-rose-200 group-hover:text-white",
-    };
-  }
-
-  // 9. Computer Applications (11th & 12th Commerce with CA)
-  if (id.includes("cap") || id.includes("application") || code.startsWith("CAP")) {
-    return {
-      image: "/images/learn/universe-quiz.png",
-      gradient: "from-[#0d272d]/85 to-[#06161a]/90",
-      borderClass: "border-teal-900/35 hover:border-teal-500/50",
-      activeBorderClass: "border-teal-400 shadow-[0_0_22px_rgba(45,212,191,0.35)] ring-1 ring-teal-300",
-      subtextColor: "text-teal-300/80",
-      tagline: "Digital Tools, Web & Database",
-      btnBorder: "border-teal-700/50",
-      btnBg: "bg-teal-950/40",
-      btnHoverBg: "group-hover:bg-teal-900/50",
-      btnText: "text-teal-200 group-hover:text-white",
-    };
-  }
-
-  // 10. Business Mathematics & Statistics (11th & 12th BM Group)
-  if (id.includes("bma") || id.includes("business-math") || code.startsWith("BMA")) {
-    return {
-      image: "/images/learn/subject-math-calc.png",
-      gradient: "from-[#2b1038]/85 to-[#17061f]/90",
-      borderClass: "border-fuchsia-900/35 hover:border-fuchsia-500/50",
-      activeBorderClass: "border-fuchsia-400 shadow-[0_0_22px_rgba(232,121,249,0.35)] ring-1 ring-fuchsia-300",
-      subtextColor: "text-fuchsia-300/80",
-      tagline: "Operations Research & Statistics",
-      btnBorder: "border-fuchsia-700/50",
-      btnBg: "bg-fuchsia-950/40",
-      btnHoverBg: "group-hover:bg-fuchsia-900/50",
-      btnText: "text-fuchsia-200 group-hover:text-white",
-    };
-  }
-
-  // 11. Mathematics (Class 1-12)
-  if (id.includes("math") || code.startsWith("MAT")) {
-    return {
-      image: "/images/learn/subject-math-calc.png",
-      gradient: "from-[#21123a]/85 to-[#140a24]/90",
-      borderClass: "border-purple-900/35 hover:border-purple-600/50",
-      activeBorderClass: "border-purple-500 shadow-[0_0_22px_rgba(168,85,247,0.35)] ring-1 ring-purple-400",
-      subtextColor: "text-purple-300/80",
-      tagline: "Numbers, Algebra & Calculus",
-      btnBorder: "border-purple-700/50",
-      btnBg: "bg-purple-950/40",
-      btnHoverBg: "group-hover:bg-purple-900/50",
-      btnText: "text-purple-200 group-hover:text-white",
-    };
-  }
-
-  // 12. Science (Class 1-10)
-  if (id.includes("science") || code.startsWith("SCI")) {
-    return {
-      image: "/images/learn/subject-science-micro.png",
-      gradient: "from-[#0c2422]/85 to-[#071615]/90",
-      borderClass: "border-emerald-900/35 hover:border-emerald-600/50",
-      activeBorderClass: "border-emerald-500 shadow-[0_0_22px_rgba(16,185,129,0.35)] ring-1 ring-emerald-400",
-      subtextColor: "text-emerald-300/80",
-      tagline: "Discover. Learn. Understand.",
-      btnBorder: "border-emerald-700/50",
-      btnBg: "bg-emerald-950/40",
-      btnHoverBg: "group-hover:bg-emerald-900/50",
-      btnText: "text-emerald-200 group-hover:text-white",
-    };
-  }
-
-  // 13. Social Science (Class 1-10)
-  if (id.includes("social") || code.startsWith("SOC")) {
-    return {
-      image: "/images/learn/subject-social-globe.png",
-      gradient: "from-[#2a1b12]/85 to-[#190f09]/90",
-      borderClass: "border-amber-900/35 hover:border-amber-600/50",
-      activeBorderClass: "border-amber-500 shadow-[0_0_22px_rgba(245,158,11,0.35)] ring-1 ring-amber-400",
-      subtextColor: "text-amber-300/80",
-      tagline: "Our History, Our World",
-      btnBorder: "border-amber-700/50",
-      btnBg: "bg-amber-950/40",
-      btnHoverBg: "group-hover:bg-amber-900/50",
-      btnText: "text-amber-200 group-hover:text-white",
-    };
-  }
-
-  // Default fallback
-  return {
-    image: "/images/learn/continue-sprout.png",
-    gradient: "from-[#1a1230]/85 to-[#0f0920]/90",
-    borderClass: "border-purple-900/35 hover:border-purple-600/50",
-    activeBorderClass: "border-purple-500 shadow-[0_0_22px_rgba(168,85,247,0.35)] ring-1 ring-purple-400",
-    subtextColor: "text-purple-300/80",
-    tagline: sub.description?.en || "Explore & Grow",
-    btnBorder: "border-purple-700/50",
-    btnBg: "bg-purple-950/40",
-    btnHoverBg: "group-hover:bg-purple-900/50",
-    btnText: "text-purple-200 group-hover:text-white",
-  };
-}
-
+/** The student's Digital Learning home: carry on, review, then every subject and chapter of their class. */
 export function SeniorDigitalLearning({
   currentStandard,
   subjects,
-  allFlatChapters,
-  filter,
-  setFilter,
   onOpenChapter,
   onOpenStandardSwitcher,
-  onSelectStandard,
   continueRecord,
   totalChapters,
   completedChaptersCount,
-  seniorGroupFilter = "cs",
-  onSelectSeniorGroup,
+  seniorGroupFilter,
   profile,
 }: SeniorDigitalLearningProps) {
-  const { locale, setLocale, t } = useLocale();
+  const { locale } = useLocale();
+  const c = COPY[locale];
   const progress = useProgress();
-  const { theme, toggleTheme } = useTheme();
-  const router = useRouter();
-
-  // Active subject filter: "all" or subjectId
-  const [activeSubjectId, setActiveSubjectId] = useState<string>("all");
-
-  // Elongate subjects section view state
-  const [isElongated, setIsElongated] = useState<boolean>(true);
-  const subjectsSectionRef = useRef<HTMLElement | null>(null);
-
-  const isSenior = currentStandard >= 11;
-  const activeSeniorGroup = SENIOR_GROUPS.find((g) => g.id === (seniorGroupFilter || "cs")) || SENIOR_GROUPS[0];
-
-  // Daily Encouragement Quote Rotation (cycles naturally every day, or via Next button)
-  const dayOfYear = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 0);
-    const diff = now.getTime() - start.getTime();
-    const oneDay = 1000 * 60 * 60 * 24;
-    return Math.max(1, Math.floor(diff / oneDay));
-  }, []);
-
-  const [quoteOffset, setQuoteOffset] = useState<number>(0);
-  const currentQuoteIndex = (dayOfYear + quoteOffset) % DAILY_ENCOURAGEMENT_QUOTES.length;
-  const currentQuote = DAILY_ENCOURAGEMENT_QUOTES[currentQuoteIndex]!;
-
-  const handleNextQuote = () => {
-    setQuoteOffset((prev) => prev + 1);
-  };
-
-  const handleBack = () => {
-    if (activeSubjectId !== "all") {
-      setActiveSubjectId("all");
-      return;
-    }
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
-  };
-
-  const handleClassTouch = (std: number) => {
-    onSelectStandard?.(std);
-    setActiveSubjectId("all");
-    setIsElongated(true);
-    // Smoothly scroll to elongated subjects section so user sees updated subjects
-    setTimeout(() => {
-      subjectsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 120);
-  };
-
-  const displayedChapters = useMemo(() => {
-    if (activeSubjectId === "all") return allFlatChapters;
-    return allFlatChapters.filter((item) => item.subject.id === activeSubjectId);
-  }, [activeSubjectId, allFlatChapters]);
-
-  const learnerName = progress.profile?.name || "Kavin";
-
-  // Progress percentage
-  const progressPct = totalChapters > 0 ? Math.round((completedChaptersCount / totalChapters) * 100) : 60;
-
-  const handleLaunchContinue = () => {
-    if (continueRecord) {
-      onOpenChapter(continueRecord.chapter.id);
-    } else if (allFlatChapters[0]) {
-      onOpenChapter(allFlatChapters[0].chapter.id);
-    }
-  };
-
-  const handleSelectSubject = (sub?: SubjectOutline) => {
-    if (sub) {
-      setActiveSubjectId((prev) => (prev === sub.id ? "all" : sub.id));
-    }
-  };
+  const done = useMemo(() => new Set(progress.lessonsDone), [progress.lessonsDone]);
+  const [picked, setPicked] = useState<string | null>(null);
+  const activeId = picked && subjects.some((s) => s.id === picked) ? picked : (continueRecord?.subject.id ?? subjects[0]?.id ?? null);
+  const active = subjects.find((s) => s.id === activeId) ?? null;
+  const stream = currentStandard >= 11 ? SENIOR_GROUPS.find((g) => g.id === seniorGroupFilter) : undefined;
+  const name = (profile?.name ?? progress.profile?.name ?? "").split(" ")[0] || "";
+  const pct = totalChapters > 0 ? Math.round((completedChaptersCount / totalChapters) * 100) : 0;
 
   return (
-    <div className="relative flex flex-col gap-6 sm:gap-8 pb-28 sm:pb-36 select-none text-slate-100">
-      {/* ========================================================================= */}
-      {/* 1. TOP NAVBAR: BRAND LOGO + CENTER NAV + LANG / THEME / PROFILE           */}
-      {/* ========================================================================= */}
-      <header className="relative z-20 flex flex-wrap items-center justify-between gap-4 border-b border-purple-900/40 pb-4 pt-1">
-        {/* Left: Back button + Module Switcher */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="group flex items-center gap-1.5 rounded-xl border border-purple-800/50 bg-purple-950/60 px-3 py-2 text-xs font-semibold text-purple-200 transition-all hover:bg-purple-900/60 hover:text-white hover:border-purple-500 shadow-sm"
-            title="Go Back"
-          >
-            <ArrowLeft
-              size={15}
-              className="transition-transform duration-200 group-hover:-translate-x-0.5 text-purple-400 group-hover:text-purple-200"
-            />
-            <span>Back</span>
-          </button>
-
-          {/* Module Switcher Tabs (Digital Learning, Holistic Growth, GK & Patriotic Songs) */}
-          <nav aria-label={t.modulesTitle} className="flex gap-1 rounded-xl border border-line bg-white/[0.03] p-1">
-            {MODULES.map((m) => {
-              const ModIcon = m.icon;
-              const active = m.slug === "learn";
-              const tabAccent = accentOf(m.accent);
-              return (
-                <Link
-                  key={m.id}
-                  href={`/m/${m.slug}`}
-                  aria-current={active ? "page" : undefined}
-                  title={m.title[locale]}
-                  className={`grid size-10 place-items-center rounded-lg transition-colors duration-200 ${
-                    active ? tabAccent.tabActive : "text-muted hover:bg-white/[0.06] hover:text-text"
-                  }`}
-                >
-                  <ModIcon size={18} weight={active ? "fill" : "regular"} aria-hidden />
-                  <span className="sr-only">{m.title[locale]}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Center: Module Title Pill */}
-        <div className="hidden lg:flex items-center gap-2 rounded-full border border-purple-800/40 bg-purple-950/50 px-4 py-1.5 backdrop-blur-md shadow-inner">
-          <GraduationCap size={16} weight="fill" className="text-purple-300" />
-          <span className="font-display text-xs font-bold text-white tracking-wide">Digital Learning</span>
-          <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_#a855f7]" />
-        </div>
-
-        {/* Right: Language, Theme & Profile Pill */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Language Selector */}
-          <button
-            type="button"
-            onClick={() => setLocale(locale === "en" ? "ta" : "en")}
-            className="flex items-center gap-1 rounded-xl border border-purple-800/40 bg-purple-950/50 px-3 py-1.5 text-xs font-medium text-purple-200 transition-colors hover:border-purple-600/60 hover:text-white"
-          >
-            <span>{locale === "en" ? "English" : "தமிழ்"}</span>
-            <span className="text-[10px] text-purple-400">▾</span>
-          </button>
-
-          {/* Dark / Light Toggle */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            title="Toggle theme"
-            className="grid size-9 place-items-center rounded-xl border border-purple-800/40 bg-purple-950/50 text-purple-300 transition-colors hover:border-purple-600/60 hover:text-white"
-          >
-            {theme === "dark" ? <Moon size={16} weight="fill" /> : <Sun size={16} weight="fill" />}
-          </button>
-
-          {/* Profile Card */}
-          <Link
-            href="/me"
-            className="group flex items-center gap-2.5 rounded-full border border-purple-700/50 bg-gradient-to-r from-purple-950/80 to-[#1e0e38]/80 py-1 pl-1 pr-3 shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all hover:border-purple-500 hover:scale-[1.02]"
-            title="My learner card"
-          >
-            <div className="relative size-8 shrink-0 overflow-hidden rounded-full border border-purple-400 bg-purple-900 p-0.5">
-              <Image
-                src="/images/junior/learner-avatar.png"
-                alt="Learner Avatar"
-                width={32}
-                height={32}
-                className="size-full rounded-full object-cover"
-              />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="font-display text-xs font-bold text-white leading-tight">{learnerName}</span>
-              <span className="font-mono text-[10px] text-purple-300/80 flex items-center gap-1">
-                Class {currentStandard} {isSenior && activeSeniorGroup ? `· ${activeSeniorGroup.badge}` : ""}
-              </span>
-            </div>
-          </Link>
-        </div>
-      </header>
-
-      {/* ========================================================================= */}
-      {/* 2. HERO BANNER: "DIGITAL LEARNING" + 3D MAGICAL OPEN BOOK SCENE           */}
-      {/* ========================================================================= */}
-      <section className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center rounded-3xl border border-purple-800/30 bg-gradient-to-r from-[#170a2c]/80 via-[#210e3f]/60 to-[#120724]/80 p-6 sm:p-8 backdrop-blur-xl shadow-[0_10px_40px_rgba(10,4,20,0.5)]">
-        {/* Left: Titles */}
-        <div className="lg:col-span-6 flex flex-col gap-2.5">
-          <h1 className="module-hero-title font-serif text-3xl sm:text-4xl lg:text-5xl font-black tracking-wider text-white uppercase drop-shadow-[0_2px_18px_rgba(168,85,247,0.35)]">
-            Digital Learning
-          </h1>
-          <p className="font-display text-lg sm:text-xl font-bold bg-gradient-to-r from-purple-300 via-pink-200 to-indigo-300 bg-clip-text text-transparent">
-            Explore. Discover. Grow.
-          </p>
-          <p className="font-headline text-sm sm:text-base text-purple-200/70 max-w-md">
-            Your learning journey, beautifully connected.
+    <div className="flex flex-col gap-8">
+      {/* Greeting */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-headline text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">{name ? c.hello(name) : c.klass(currentStandard)}</h1>
+          <p className="mt-1 text-muted">
+            {[c.klass(currentStandard), stream?.name[locale] ?? stream?.badge].filter(Boolean).join(" · ")}
           </p>
         </div>
+        {onOpenStandardSwitcher && (
+          <button type="button" onClick={onOpenStandardSwitcher} className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-line-strong px-4 text-sm font-semibold transition-colors duration-150 hover:bg-surface-2 ${FOCUS}`}>
+            <PencilSimple size={16} aria-hidden /> {c.changeClass}
+          </button>
+        )}
+      </div>
 
-        {/* Right: 3D Magical Open Book, Globe, Flask, Microscope & Cherry Blossoms */}
-        <div className="lg:col-span-6 relative flex items-center justify-center lg:justify-end">
-          <div className="relative w-full max-w-[460px] aspect-[780/324] cosmic-prop-float transition-transform duration-500 hover:scale-[1.03]">
-            <Image
-              src="/images/learn/hero-3d-scene.png"
-              alt="Magical 3D open book with glowing potions, globe, microscope, and hourglass"
-              fill
-              priority
-              className="object-contain drop-shadow-[0_10px_35px_rgba(168,85,247,0.4)]"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 3. MAIN 2-COLUMN GRID: CONTENT (8 cols) + RIGHT SIDEBAR (4 cols)          */}
-      {/* ========================================================================= */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-7 items-start">
-        {/* ===================================================================== */}
-        {/* LEFT MAIN AREA (8 cols)                                               */}
-        {/* ===================================================================== */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          {/* ----------------------------------------------------------------- */}
-          {/* A. YOUR ENROLLED CLASS & ACADEMIC PROFILE                         */}
-          {/* ----------------------------------------------------------------- */}
-          <section className="relative overflow-hidden rounded-2xl border border-purple-800/40 bg-gradient-to-br from-[#1b0d36]/80 via-[#140a28]/70 to-[#0e071c]/90 p-4 sm:p-5 backdrop-blur-md shadow-lg">
-            {/* Ambient subtle glow */}
-            <div className="pointer-events-none absolute -right-10 -top-10 size-48 rounded-full bg-purple-600/15 blur-3xl" />
-
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              {/* Left: Class Badge + 3D Art + Stage & Board Info */}
-              <div className="flex items-center gap-3.5 sm:gap-4">
-                <div className="relative size-14 sm:size-16 shrink-0 rounded-2xl border border-purple-500/40 bg-gradient-to-b from-purple-900/60 to-purple-950/80 p-2 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-                  <Image
-                    src={
-                      CLASS_ITEMS.find((c) => c.std === currentStandard)?.image || "/images/learn/class-8-armillary.png"
-                    }
-                    alt={`Class ${currentStandard}`}
-                    width={64}
-                    height={64}
-                    className="size-full object-contain drop-shadow-md"
-                  />
-                  <span className="absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-full bg-purple-500 text-white shadow-sm ring-2 ring-[#140a28]">
-                    <Check size={11} weight="bold" />
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-display text-lg sm:text-xl font-black text-white tracking-wide">
-                      Class {currentStandard}
-                    </h2>
-                    <span className="rounded-full bg-purple-500/20 border border-purple-400/30 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-purple-200">
-                      {currentStandard <= 5
-                        ? "Primary Stage"
-                        : currentStandard <= 8
-                          ? "Middle School"
-                          : currentStandard <= 10
-                            ? "Secondary School"
-                            : "Higher Secondary"}
-                    </span>
-                    <span className="rounded-full bg-emerald-500/15 border border-emerald-400/30 px-2.5 py-0.5 font-mono text-[11px] text-emerald-300">
-                      {profile?.board === "cbse"
-                        ? "CBSE"
-                        : profile?.board === "icse_other"
-                          ? "ICSE / Other"
-                          : "Tamil Nadu State Board"}
-                    </span>
-                  </div>
-
-                  <p className="font-mono text-xs text-purple-300/80">
-                    {isSenior && activeSeniorGroup ? (
-                      <span>
-                        Stream:{" "}
-                        <strong className="text-white font-medium">
-                          {activeSeniorGroup.name[locale] || activeSeniorGroup.name.en}
-                        </strong>{" "}
-                        · Personalized Syllabus
-                      </span>
-                    ) : (
-                      <span>Samacheer Kalvi · Enrolled Academic Profile</span>
-                    )}
-                  </p>
-                </div>
+      {/* Continue + shortcuts */}
+      <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        {continueRecord ? (
+          <section aria-labelledby="continue-title" className="flex flex-col gap-5 rounded-2xl border border-line bg-surface p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p id="continue-title" className="text-sm font-medium text-muted">
+                  {continueRecord.isStarter ? c.startTitle : c.continueTitle}
+                </p>
+                <p className="mt-2 text-sm font-semibold text-violet">{continueRecord.subject.name[locale]}</p>
+                <h2 className="mt-0.5 font-headline text-xl font-semibold leading-snug sm:text-2xl">
+                  {c.chapterOf(continueRecord.chapter.chapterNumber, continueRecord.chapter.title[locale])}
+                </h2>
               </div>
-
-              {/* Right: Quick Edit Link */}
-              {onOpenStandardSwitcher && (
-                <button
-                  type="button"
-                  onClick={onOpenStandardSwitcher}
-                  className="group inline-flex items-center gap-2 self-start sm:self-auto rounded-xl border border-purple-700/50 bg-purple-950/70 px-3.5 py-2 font-mono text-xs font-medium text-purple-200 hover:text-white hover:bg-purple-900/60 hover:border-purple-400 transition-all shadow-sm"
-                  title="Change Class, Board or Stream in Profile Settings"
-                >
-                  <PencilSimple size={15} className="text-purple-400 transition-transform group-hover:rotate-12" />
-                  <span>Edit Academic Profile</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => onOpenChapter(continueRecord.chapter.id)}
+                className={`inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-violet px-5 font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-violet/90 active:scale-[0.98] dark:text-[#120e1f] ${FOCUS}`}
+              >
+                {continueRecord.isStarter ? c.start : c.continue} <ArrowRight size={18} weight="bold" aria-hidden />
+              </button>
+            </div>
+            <div>
+              <div className="h-2 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={c.done(completedChaptersCount, totalChapters)}>
+                <div className="h-full rounded-full bg-success transition-[width] duration-500" style={{ width: `${pct}%` }} />
+              </div>
+              <p className="mt-2 text-sm text-muted tabular-nums">{c.done(completedChaptersCount, totalChapters)}</p>
             </div>
           </section>
+        ) : (
+          <div />
+        )}
+        <nav aria-label={c.exercises} className="flex flex-col divide-y divide-line rounded-2xl border border-line bg-surface">
+          {(
+            [
+              ["/practice", ListChecks, c.exercises, c.exercisesHint],
+              ["/me", IdentificationCard, c.card, c.cardHint],
+            ] as const
+          ).map(([href, Ico, label, hint]) => (
+            <Link key={href} href={href} className={`group flex flex-1 items-center gap-3 px-5 py-4 transition-colors duration-150 first:rounded-t-2xl last:rounded-b-2xl hover:bg-surface-2 ${FOCUS}`}>
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-deep text-violet-ink">
+                <Ico size={20} weight="duotone" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">{label}</span>
+                <span className="block text-sm text-muted">{hint}</span>
+              </span>
+              <CaretRight size={18} className="text-muted transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden />
+            </Link>
+          ))}
+        </nav>
+      </div>
 
-          {/* Daily 5 spaced review + mistake notebook (Classes 4-12 practise in the chapter classroom) */}
-          {currentStandard >= 4 && <ReviewHub />}
+      {currentStandard >= 4 && <ReviewHub />}
 
-          {/* ----------------------------------------------------------------- */}
-          {/* B. EXPLORE YOUR SUBJECTS                                          */}
-          {/* ----------------------------------------------------------------- */}
-          <section ref={subjectsSectionRef} className="flex flex-col gap-3.5 transition-all duration-500 ease-out">
-            {/* Header: Title + Badges + Elongate View Toggle */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <Sparkle size={18} weight="fill" className="text-purple-400 animate-starlight" />
-                <h2 className="font-display text-sm sm:text-base font-bold text-white tracking-wide">
-                  Explore Your Subjects
-                </h2>
-                <span className="rounded-full bg-purple-900/60 border border-purple-700/50 px-2.5 py-0.5 font-mono text-[11px] text-purple-300">
-                  {subjects.length} Subjects
+      {/* Subjects and their chapters */}
+      <section aria-labelledby="subjects-title" className="flex flex-col gap-4">
+        <h2 id="subjects-title" className="font-headline text-2xl font-semibold tracking-[-0.02em]">
+          {c.subjects}
+        </h2>
+        <div role="tablist" aria-label={c.subjects} className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+          {subjects.map((s) => {
+            const Ico = SUBJECT_ICON[s.icon] ?? BookOpenText;
+            const selected = s.id === activeId;
+            const finished = s.chapters.filter((ch) => done.has(ch.id)).length;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-controls="chapter-list"
+                onClick={() => setPicked(s.id)}
+                className={`flex min-h-[5.5rem] flex-col items-start justify-between gap-2 rounded-xl border p-3.5 text-left transition-colors duration-150 ${FOCUS} ${
+                  selected ? "border-violet bg-violet-deep/60" : "border-line bg-surface hover:border-line-strong hover:bg-surface-2"
+                }`}
+              >
+                <Ico size={22} weight={selected ? "fill" : "duotone"} className="text-violet" aria-hidden />
+                <span className="w-full">
+                  <span className="block font-semibold leading-tight">{s.name[locale]}</span>
+                  <span className="mt-0.5 block text-xs text-muted tabular-nums">{finished ? `${finished}/${s.chapters.length}` : c.chapters(s.chapters.length)}</span>
                 </span>
-                {isSenior && (
-                  <span className="rounded-full bg-indigo-900/60 border border-indigo-700/50 px-2.5 py-0.5 font-mono text-[11px] text-indigo-200">
-                    {activeSeniorGroup?.badge || "Computer Science"}
-                  </span>
-                )}
-              </div>
+              </button>
+            );
+          })}
+        </div>
 
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => setIsElongated((prev) => !prev)}
-                  className="flex items-center gap-1.5 rounded-lg border border-purple-800/40 bg-purple-950/40 px-2.5 py-1 font-mono text-[11px] text-purple-300 hover:text-white hover:border-purple-600 transition-colors"
-                  title={isElongated ? "Switch to standard grid" : "Elongate subjects layout"}
-                >
-                  <span>{isElongated ? "⊟ Compact Cards" : "⊞ Elongate View"}</span>
-                </button>
-
-                {activeSubjectId !== "all" && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubjectId("all")}
-                    className="font-mono text-xs text-purple-400 hover:text-purple-300 hover:underline"
-                  >
-                    View All Subjects
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Senior Secondary Group / Stream Info Card for Class 11 and 12 */}
-            {isSenior && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 rounded-2xl border border-purple-800/40 bg-gradient-to-r from-purple-950/60 via-[#180a2c]/60 to-purple-950/60 p-3.5 sm:p-4 backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-300 shadow-md">
-                <div className="flex items-center gap-3">
-                  <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-purple-900/60 border border-purple-500/40 text-purple-200 shadow-sm">
-                    <GraduationCap size={22} weight="fill" />
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-display text-xs sm:text-sm font-bold text-white tracking-wide">
-                        {activeSeniorGroup?.badge || "Computer Science"}
-                      </span>
-                      <span className="rounded-full bg-purple-500/20 border border-purple-400/30 px-2 py-0.5 font-mono text-[10px] text-purple-300">
-                        Enrolled Stream
-                      </span>
-                      <span className="font-mono text-[10.5px] text-purple-300/70">Code {activeSeniorGroup?.code}</span>
-                    </div>
-                    <span className="font-mono text-[11px] text-purple-300/80">
-                      {activeSeniorGroup?.description[locale] || activeSeniorGroup?.description.en}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  {onOpenStandardSwitcher && (
+        <div id="chapter-list" role="tabpanel" aria-label={active?.name[locale]} className="overflow-hidden rounded-2xl border border-line bg-surface">
+          {active?.chapters.length ? (
+            <ol className="divide-y divide-line">
+              {active.chapters.map((ch) => {
+                const isDone = done.has(ch.id);
+                return (
+                  <li key={ch.id}>
                     <button
                       type="button"
-                      onClick={onOpenStandardSwitcher}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-purple-700/50 bg-purple-900/40 px-3 py-1.5 font-mono text-xs text-purple-200 hover:text-white hover:bg-purple-800/50 hover:border-purple-400 transition-colors shadow-sm"
-                      title="Change Stream in Profile Settings"
+                      onClick={() => onOpenChapter(ch.id)}
+                      className={`group flex w-full items-center gap-4 px-4 py-4 text-left transition-colors duration-150 hover:bg-surface-2 sm:px-5 ${FOCUS} focus-visible:ring-inset focus-visible:ring-offset-0`}
                     >
-                      <PencilSimple size={13} />
-                      <span>Change Stream in Profile</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Dynamic Subjects Grid (Elongated across all subjects for this Class) */}
-            <div
-              className={`grid gap-3.5 transition-all duration-500 ease-out ${
-                isElongated
-                  ? isSenior
-                    ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
-                    : subjects.length === 5
-                      ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
-                      : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"
-                  : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
-              }`}
-            >
-              {subjects.map((sub) => {
-                const visual = getSubjectVisual(sub);
-                const isSelected = activeSubjectId === sub.id;
-                const completedCount = sub.chapters.filter((ch) => progress.lessonsDone.includes(ch.id)).length;
-
-                return (
-                  <div
-                    key={sub.id}
-                    onClick={() => handleSelectSubject(sub)}
-                    className={`group cosmic-card-glow cursor-pointer flex flex-col justify-between rounded-2xl border p-4 bg-gradient-to-b ${visual.gradient} backdrop-blur-md transition-all duration-300 ${
-                      isSelected ? visual.activeBorderClass : visual.borderClass
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono text-[10px] uppercase font-bold tracking-wider opacity-75">
-                          {sub.code || "SUB"}
-                        </span>
-                        {completedCount > 0 && (
-                          <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.2 font-mono text-[9px] text-emerald-300">
-                            {completedCount}/{sub.chapters.length}
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="font-display text-base font-black text-white leading-tight">
-                        {sub.name[locale] || sub.name.en}
-                      </h3>
-                      <p
-                        className={`font-display text-[11px] font-semibold ${visual.subtextColor} leading-snug line-clamp-1`}
+                      <span
+                        className={`grid size-10 shrink-0 place-items-center rounded-full text-sm font-semibold tabular-nums ${isDone ? "bg-success/15 text-success" : "bg-surface-2 text-muted"}`}
                       >
-                        {visual.tagline}
-                      </p>
-                    </div>
-
-                    {/* 3D Visual Asset */}
-                    <div className="relative my-3 size-20 self-center transition-transform group-hover:scale-105">
-                      <Image
-                        src={visual.image}
-                        alt={sub.name.en}
-                        width={80}
-                        height={80}
-                        className="size-full object-contain drop-shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
-                      />
-                    </div>
-
-                    {/* Bottom Bar: Chapters + Explore Button */}
-                    <div className="flex flex-col gap-2">
-                      <span className={`font-mono text-[11px] ${visual.subtextColor} flex items-center gap-1.5`}>
-                        <BookOpen size={13} />
-                        <span>{sub.chapters.length} Chapters</span>
+                        {isDone ? <CheckCircle size={22} weight="fill" aria-label={c.finished} /> : ch.chapterNumber}
                       </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectSubject(sub);
-                        }}
-                        className={`w-full rounded-xl border py-1.5 text-center font-display text-xs font-bold transition-colors ${visual.btnBorder} ${visual.btnBg} ${visual.btnHoverBg} ${visual.btnText}`}
-                      >
-                        Explore
-                      </button>
-                    </div>
-                  </div>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold leading-snug">{ch.title[locale]}</span>
+                        <span className="mt-0.5 block truncate text-sm text-muted">{ch.summary[locale]}</span>
+                      </span>
+                      <span className="hidden shrink-0 text-right text-xs text-muted tabular-nums sm:block">
+                        {c.minutes(ch.estimatedMinutes)}
+                        {ch.questionCount > 0 && <span className="block">{c.questions(ch.questionCount)}</span>}
+                      </span>
+                      <CaretRight size={18} className="shrink-0 text-muted transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden />
+                    </button>
+                  </li>
                 );
               })}
-            </div>
-          </section>
-
-          {/* ----------------------------------------------------------------- */}
-          {/* C. EXPANDED CHAPTERS EXPLORER (Shown only when subject is clicked)*/}
-          {/* ----------------------------------------------------------------- */}
-          {activeSubjectId !== "all" && (
-            <section className="fade-up rounded-2xl border border-purple-900/30 bg-[#140a28]/80 p-4 sm:p-5 backdrop-blur-md">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-display text-sm font-bold text-white flex items-center gap-2">
-                  <BookOpen size={16} className="text-purple-400" />
-                  <span>{subjects.find((s) => s.id === activeSubjectId)?.name[locale] || "Chapters"}</span>
-                  <span className="font-mono text-xs text-purple-300/60 font-normal">
-                    ({displayedChapters.length} chapters)
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setActiveSubjectId("all")}
-                  className="rounded-lg border border-purple-800/40 bg-purple-950/50 px-2.5 py-1 font-mono text-[11px] text-purple-300 hover:text-white hover:border-purple-600 transition-colors"
-                >
-                  ✕ Close Explorer
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-violet">
-                {displayedChapters.map((item, idx) => (
-                  <button
-                    key={item.chapter.id}
-                    type="button"
-                    onClick={() => onOpenChapter(item.chapter.id)}
-                    className="group flex items-center justify-between gap-3 rounded-xl border border-purple-900/40 bg-purple-950/30 px-3.5 py-2.5 text-left transition-all duration-200 hover:border-purple-600/60 hover:bg-purple-900/30 hover:shadow-sm"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-purple-900/60 border border-purple-700/40 font-mono text-[11px] font-bold text-purple-200">
-                        {idx + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate font-display text-xs sm:text-[13px] font-bold text-slate-100 group-hover:text-purple-300">
-                          {item.chapter.title[locale]}
-                        </p>
-                        <p className="truncate font-mono text-[10.5px] text-purple-300/60">
-                          {item.subject.name[locale]} • {item.chapter.summary[locale]}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-purple-600/40 text-purple-300 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                      <Play size={10} weight="fill" className="ml-0.5" />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </section>
+            </ol>
+          ) : (
+            <p className="p-6 text-muted">{c.empty}</p>
           )}
-
-          {/* ----------------------------------------------------------------- */}
-          {/* D. LEARNING UNIVERSE (BOTTOM QUICK NAVIGATION BAR)                */}
-          {/* ----------------------------------------------------------------- */}
-          <section className="flex flex-col gap-3 rounded-2xl border border-purple-900/30 bg-[#140a28]/60 p-4 sm:p-5 backdrop-blur-md">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-purple-400">🪐</span>
-              <h2 className="font-display text-sm sm:text-base font-bold text-white tracking-wide">
-                Learning Universe
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {/* 1. Live Classes */}
-              <div className="group flex items-center gap-2.5 rounded-xl border border-purple-900/30 bg-purple-950/30 p-2.5 transition-all hover:border-purple-600/50 hover:bg-purple-900/30">
-                <div className="relative size-10 shrink-0">
-                  <Image
-                    src="/images/learn/universe-live.png"
-                    alt="Live Classes"
-                    width={40}
-                    height={40}
-                    className="size-full object-contain drop-shadow-sm"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">Live Classes</h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">Join interactive sessions</p>
-                </div>
-              </div>
-
-              {/* 2. Quizzes & Games */}
-              <Link
-                href="/m/grow"
-                className="group flex items-center gap-2.5 rounded-xl border border-purple-900/30 bg-purple-950/30 p-2.5 transition-all hover:border-purple-600/50 hover:bg-purple-900/30"
-              >
-                <div className="relative size-10 shrink-0">
-                  <Image
-                    src="/images/learn/universe-quiz.png"
-                    alt="Quizzes & Games"
-                    width={40}
-                    height={40}
-                    className="size-full object-contain drop-shadow-sm"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">Quizzes & Games</h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">Learn & test knowledge</p>
-                </div>
-              </Link>
-
-              {/* 3. Library */}
-              <div className="group flex items-center gap-2.5 rounded-xl border border-purple-900/30 bg-purple-950/30 p-2.5 transition-all hover:border-purple-600/50 hover:bg-purple-900/30">
-                <div className="relative size-10 shrink-0">
-                  <Image
-                    src="/images/learn/universe-library.png"
-                    alt="Library"
-                    width={40}
-                    height={40}
-                    className="size-full object-contain drop-shadow-sm"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">Library</h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">e-Books & Resources</p>
-                </div>
-              </div>
-
-              {/* 4. Assignments */}
-              <div className="group flex items-center gap-2.5 rounded-xl border border-purple-900/30 bg-purple-950/30 p-2.5 transition-all hover:border-purple-600/50 hover:bg-purple-900/30">
-                <div className="relative size-10 shrink-0">
-                  <Image
-                    src="/images/learn/universe-assign.png"
-                    alt="Assignments"
-                    width={40}
-                    height={40}
-                    className="size-full object-contain drop-shadow-sm"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">Assignments</h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">Submit & track work</p>
-                </div>
-              </div>
-
-              {/* 5. Achievements */}
-              <div className="group flex items-center gap-2.5 rounded-xl border border-purple-900/30 bg-purple-950/30 p-2.5 transition-all hover:border-purple-600/50 hover:bg-purple-900/30">
-                <div className="relative size-10 shrink-0">
-                  <Image
-                    src="/images/learn/universe-achieve.png"
-                    alt="Achievements"
-                    width={40}
-                    height={40}
-                    className="size-full object-contain drop-shadow-sm"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-display text-xs font-bold text-white leading-tight">Achievements</h4>
-                  <p className="font-mono text-[10px] text-purple-300/60 truncate">Badges & Rewards</p>
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
-
-        {/* ===================================================================== */}
-        {/* RIGHT SIDEBAR (4 cols)                                                */}
-        {/* ===================================================================== */}
-        <aside className="lg:col-span-4 flex flex-col gap-5">
-          {/* ----------------------------------------------------------------- */}
-          {/* CARD 1: YOUR LEARNING PATH                                        */}
-          {/* ----------------------------------------------------------------- */}
-          <div className="rounded-2xl border border-purple-900/30 bg-[#160a2b]/70 p-5 backdrop-blur-xl shadow-lg">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                <GraduationCap size={18} weight="fill" className="text-purple-400" />
-                <h3 className="font-display text-sm sm:text-base font-bold text-white">Your Learning Path</h3>
-              </div>
-              {onOpenStandardSwitcher && (
-                <button
-                  type="button"
-                  onClick={onOpenStandardSwitcher}
-                  className="font-mono text-[11px] text-purple-400 hover:text-purple-300 hover:underline"
-                >
-                  Change Class
-                </button>
-              )}
-            </div>
-
-            {/* Breadcrumb Path */}
-            <p className="font-mono text-xs text-purple-200/90 mb-3 flex items-center gap-1.5 flex-wrap">
-              <span className="text-purple-300 font-bold">Class {currentStandard}</span>
-              <span>›</span>
-              <span className="text-pink-300">{continueRecord ? continueRecord.subject.name[locale] : "Science"}</span>
-              <span>›</span>
-              <span>Term 1</span>
-              <span>›</span>
-              <span className="text-indigo-300 font-bold">
-                {continueRecord ? continueRecord.chapter.title[locale] : "Chapter 3"}
-              </span>
-            </p>
-
-            {/* Progress bar */}
-            <div className="relative h-2 w-full overflow-hidden rounded-full bg-purple-950/80 border border-purple-900/50 mb-2">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 shadow-[0_0_12px_#a855f7] transition-all duration-500"
-                style={{ width: `${Math.max(15, progressPct)}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between font-mono text-[11px] text-purple-300/70">
-              <span>
-                {completedChaptersCount} of {totalChapters} chapters completed
-              </span>
-              <span className="font-bold text-purple-300">{progressPct}%</span>
-            </div>
-          </div>
-
-          {/* ----------------------------------------------------------------- */}
-          {/* CARD 2: CONTINUE LEARNING                                         */}
-          {/* ----------------------------------------------------------------- */}
-          <div className="rounded-2xl border border-purple-900/30 bg-[#160a2b]/70 p-5 backdrop-blur-xl shadow-lg">
-            <div className="flex items-center justify-between mb-3.5">
-              <div className="flex items-center gap-2">
-                <span className="grid size-6 place-items-center rounded-full bg-purple-600 text-white shadow-sm">
-                  <Play size={10} weight="fill" className="ml-0.5" />
-                </span>
-                <h3 className="font-display text-sm sm:text-base font-bold text-white">Continue Learning</h3>
-              </div>
-              <button
-                type="button"
-                onClick={handleLaunchContinue}
-                className="font-mono text-[11px] text-purple-400 hover:text-purple-300 hover:underline"
-              >
-                View All
-              </button>
-            </div>
-
-            {/* Active Chapter Card */}
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-purple-800/30 bg-purple-950/40 p-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-purple-700/40 bg-purple-900/50">
-                  <Image
-                    src="/images/learn/continue-sprout.png"
-                    alt="Sprout in soil pot"
-                    width={48}
-                    height={48}
-                    className="size-full object-cover"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-display text-xs sm:text-[13px] font-bold text-white leading-tight truncate">
-                    {continueRecord ? continueRecord.chapter.title[locale] : "Chapter 3: Plants Around Us"}
-                  </h4>
-                  <p className="font-mono text-[10.5px] text-purple-300/70 truncate mt-0.5">
-                    {continueRecord ? continueRecord.subject.name[locale] : "Science"} • Term 1
-                  </p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <div className="relative h-1.5 w-20 overflow-hidden rounded-full bg-purple-900/60">
-                      <div className="h-full rounded-full bg-purple-400" style={{ width: "60%" }} />
-                    </div>
-                    <span className="font-mono text-[9.5px] text-purple-400">60%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Purple Continue Button */}
-              <button
-                type="button"
-                onClick={handleLaunchContinue}
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-purple-600 px-3 py-1.5 font-display text-xs font-bold text-white shadow-[0_0_12px_rgba(168,85,247,0.4)] transition-all hover:bg-purple-500 hover:scale-105 active:scale-95"
-              >
-                <span>Continue</span>
-                <CaretRight size={11} weight="bold" />
-              </button>
-            </div>
-          </div>
-
-          {/* ----------------------------------------------------------------- */}
-          {/* CARD 3: QUICK ACCESS                                              */}
-          {/* ----------------------------------------------------------------- */}
-          <div className="rounded-2xl border border-purple-900/30 bg-[#160a2b]/70 p-5 backdrop-blur-xl shadow-lg flex flex-col gap-2.5">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-purple-400">📚</span>
-              <h3 className="font-display text-sm sm:text-base font-bold text-white">Quick Access</h3>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleLaunchContinue}
-              className="group flex items-center justify-between rounded-xl border border-purple-900/40 bg-purple-950/30 px-3.5 py-2.5 text-left transition-all hover:border-purple-600/50 hover:bg-purple-900/30"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-7 place-items-center rounded-lg bg-purple-900/60 text-purple-300">
-                  <FileText size={16} />
-                </span>
-                <span className="font-display text-xs font-bold text-purple-100 group-hover:text-white">My Notes</span>
-              </div>
-              <CaretRight size={12} className="text-purple-400 transition-transform group-hover:translate-x-0.5" />
-            </button>
-
-            <Link
-              href="/practice"
-              className="group flex items-center justify-between rounded-xl border border-purple-900/40 bg-purple-950/30 px-3.5 py-2.5 text-left transition-all hover:border-purple-600/50 hover:bg-purple-900/30"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-7 place-items-center rounded-lg bg-purple-900/60 text-purple-300">
-                  <PencilSimple size={16} />
-                </span>
-                <span className="font-display text-xs font-bold text-purple-100 group-hover:text-white">
-                  {locale === "ta" ? "பயிற்சிகள் & தீர்வுகள்" : "Exercises & Solutions"}
-                </span>
-              </div>
-              <CaretRight size={12} className="text-purple-400 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-
-            <button
-              type="button"
-              onClick={handleLaunchContinue}
-              className="group flex items-center justify-between rounded-xl border border-purple-900/40 bg-purple-950/30 px-3.5 py-2.5 text-left transition-all hover:border-purple-600/50 hover:bg-purple-900/30"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-7 place-items-center rounded-lg bg-purple-900/60 text-purple-300">
-                  <DownloadSimple size={16} />
-                </span>
-                <span className="font-display text-xs font-bold text-purple-100 group-hover:text-white">
-                  Download PDFs
-                </span>
-              </div>
-              <CaretRight size={12} className="text-purple-400 transition-transform group-hover:translate-x-0.5" />
-            </button>
-          </div>
-        </aside>
-      </div>
-
-      {/* ----------------------------------------------------------------- */}
-      {/* 4. ELONGATED FULL-WIDTH DAILY ENCOURAGEMENT BANNER                */}
-      {/* ----------------------------------------------------------------- */}
-      <div className="daily-encouragement-card relative z-10 w-full overflow-hidden rounded-2xl border border-purple-900/40 bg-[#160a2b]/80 p-5 sm:p-6 backdrop-blur-xl shadow-lg transition-all duration-300 hover:border-purple-600/50">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
-          {/* Left: Quotes Icon Badge in Front + Daily Content */}
-          <div className="flex-1 flex items-start gap-3.5 sm:gap-4 min-w-0">
-            {/* Front Quote Icon */}
-            <div className="quote-icon grid size-10 sm:size-11 shrink-0 place-items-center rounded-xl bg-purple-500/15 border border-purple-500/30 text-pink-400 shadow-sm mt-0.5">
-              <Quotes size={22} weight="fill" />
-            </div>
-
-            <div className="flex-1 min-w-0 flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-pink-400">🌸</span>
-                <h3 className="quote-title font-display text-sm sm:text-base font-bold text-white tracking-wide">
-                  Daily Encouragement
-                </h3>
-                <span className="quote-badge rounded-full bg-purple-500/20 border border-purple-400/30 px-2 py-0.5 font-mono text-[10px] text-purple-200">
-                  Day #{dayOfYear} · {currentQuote.author[locale]}
-                </span>
-              </div>
-
-              {/* In Front Quote Text */}
-              <p
-                className="quote-text font-serif italic text-sm sm:text-base md:text-[16px] leading-relaxed max-w-4xl"
-                style={{ color: "#f5f3ff" }}
-              >
-                “{currentQuote.quote[locale]}”
-              </p>
-
-              {/* Author & Role in front */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="quote-author font-mono text-xs sm:text-sm font-bold" style={{ color: "#f472b6" }}>
-                  — {currentQuote.author[locale]}
-                </span>
-                {currentQuote.role && (
-                  <span className="quote-role font-mono text-[11px]" style={{ color: "rgba(216, 180, 254, 0.85)" }}>
-                    · {currentQuote.role[locale]}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Next Quote button + 3D Owl Sitting on Stacked Books */}
-          <div className="flex items-center gap-4 self-end md:self-center shrink-0">
-            <button
-              type="button"
-              onClick={handleNextQuote}
-              className="quote-refresh-btn group flex items-center gap-1.5 rounded-xl border border-purple-800/40 bg-purple-950/40 px-3 py-1.5 font-mono text-xs text-purple-200 transition-all hover:border-purple-500 hover:text-white hover:bg-purple-900/50"
-              title="Next Daily Quote"
-            >
-              <ArrowClockwise
-                size={13}
-                className="transition-transform duration-300 group-hover:rotate-180 text-purple-300"
-              />
-              <span>Next Quote</span>
-            </button>
-
-            <div className="relative size-16 sm:size-20 shrink-0 transition-transform hover:scale-105 duration-300">
-              <Image
-                src="/images/learn/encouragement-owl.png"
-                alt="Cute 3D owl with cherry blossom petals"
-                width={80}
-                height={80}
-                className="size-full object-contain drop-shadow-[0_4px_16px_rgba(168,85,247,0.35)]"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

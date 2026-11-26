@@ -1,25 +1,27 @@
 @import "tailwindcss";
 
+/* `dark:` follows the app's own theme switch (the .dark class), not the device setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  color-scheme: dark;
-  --bg: #05020c;
-  --surface: #140d28;
-  --surface-2: #1e133c;
-  --line: rgb(255 255 255 / 0.14);
-  --line-strong: rgb(255 255 255 / 0.25);
-  --text: #ffffff;
-  --muted: #cbc7de;
-  --violet: #c084fc;
-  --violet-deep: #4c1d95;
-  --violet-ink: #f3e8ff;
-  --glow-a: #9333ea;
-  --glow-b: #e879f9;
-  /* Playful accents for module screens (categories, rewards, feedback). */
-  --amber: #fbbf24;
-  --teal: #2dd4bf;
-  --pink: #f472b6;
-  --success: #4ade80;
-  --danger: #f87171;
+  color-scheme: light;
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --surface-2: #f4f1fa;
+  --line: rgb(36 24 72 / 0.12);
+  --line-strong: rgb(36 24 72 / 0.24);
+  --text: #18122b;
+  --muted: #564e6c;
+  --violet: #6d28d9;
+  --violet-deep: #efe8fd;
+  --violet-ink: #3b0f7a;
+  --glow-a: #7c3aed;
+  --glow-b: #a78bfa;
+  --amber: #a15c07;
+  --teal: #0f766e;
+  --pink: #be185d;
+  --success: #15803d;
+  --danger: #b91c1c;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -57,7 +59,7 @@ html {
 }
 
 body {
-  background: radial-gradient(circle at 50% 0%, #10061f 0%, #06020c 42%, #020106 72%, #000000 100%);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -71,28 +73,28 @@ body {
 [data-theme="dark"],
 .dark {
   color-scheme: dark;
-  --bg: #05020c;
-  --surface: #140d28;
-  --surface-2: #1e133c;
-  --line: rgb(255 255 255 / 0.14);
-  --line-strong: rgb(255 255 255 / 0.25);
-  --text: #ffffff;
-  --muted: #cbc7de;
-  --violet: #c084fc;
-  --violet-deep: #4c1d95;
-  --violet-ink: #f3e8ff;
-  --glow-a: #9333ea;
-  --glow-b: #e879f9;
-  --amber: #fbbf24;
-  --teal: #2dd4bf;
-  --pink: #f472b6;
-  --success: #4ade80;
-  --danger: #f87171;
+  --bg: #120e1f;
+  --surface: #1b1630;
+  --surface-2: #241d3d;
+  --line: rgb(237 228 255 / 0.12);
+  --line-strong: rgb(237 228 255 / 0.24);
+  --text: #f4f1fb;
+  --muted: #bdb5d3;
+  --violet: #b9a0f7;
+  --violet-deep: #2f2552;
+  --violet-ink: #efe8ff;
+  --glow-a: #8b5cf6;
+  --glow-b: #c4b5fd;
+  --amber: #f5c15c;
+  --teal: #5ad1c0;
+  --pink: #f29ac4;
+  --success: #6ee7a0;
+  --danger: #f8a0a0;
 }
 
 [data-theme="dark"] body,
 .dark body {
-  background: radial-gradient(circle at 50% 0%, #10061f 0%, #06020c 42%, #020106 72%, #000000 100%) !important;
+  background: var(--bg) !important;
   color: var(--text) !important;
 }
 
@@ -102,19 +104,19 @@ body {
 [data-theme="light"],
 .light {
   color-scheme: light;
-  --bg: #f8f6fc;
+  --bg: #fbfaf7;
   --surface: #ffffff;
-  --surface-2: #f3effa;
-  --line: rgb(76 29 149 / 0.16);
-  --line-strong: rgb(76 29 149 / 0.35);
-  --text: #110826;
-  --muted: #4a3e63;
-  --violet: #7c3aed;
-  --violet-deep: #ede9fe;
-  --violet-ink: #310c59;
-  --glow-a: #a855f7;
-  --glow-b: #ec4899;
-  --amber: #b45309;
+  --surface-2: #f4f1fa;
+  --line: rgb(36 24 72 / 0.12);
+  --line-strong: rgb(36 24 72 / 0.24);
+  --text: #18122b;
+  --muted: #564e6c;
+  --violet: #6d28d9;
+  --violet-deep: #efe8fd;
+  --violet-ink: #3b0f7a;
+  --glow-a: #7c3aed;
+  --glow-b: #a78bfa;
+  --amber: #a15c07;
   --teal: #0f766e;
   --pink: #be185d;
   --success: #15803d;
@@ -123,7 +125,7 @@ body {
 
 [data-theme="light"] body,
 .light body {
-  background: radial-gradient(circle at 50% 0%, #f7f1fd 0%, #f3ecfb 36%, #ece4f7 68%, #e2d8f0 100%) !important;
+  background: var(--bg) !important;
   color: var(--text) !important;
 }
 

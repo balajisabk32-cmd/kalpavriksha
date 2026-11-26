@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 export type Theme = "dark" | "light";
 
 const KEY = "kalpavriksha.theme";
-let currentTheme: Theme = "dark";
+let currentTheme: Theme = "light";
 let initialized = false;
 const listeners = new Set<() => void>();
 
@@ -30,10 +30,10 @@ export function bootTheme() {
     if (saved === "light" || saved === "dark") {
       currentTheme = saved;
     } else {
-      currentTheme = "dark";
+      currentTheme = "light";
     }
   } catch {
-    currentTheme = "dark";
+    currentTheme = "light";
   }
   applyTheme(currentTheme);
   for (const l of listeners) l();

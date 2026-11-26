@@ -104,7 +104,7 @@ export function ReviewHub() {
   return (
     <section
       aria-labelledby="review-hub-title"
-      className="rounded-3xl border border-line bg-surface/75 p-5 text-text shadow-sm backdrop-blur-md sm:p-6"
+      className="rounded-2xl border border-line bg-surface p-5 text-text sm:p-6"
     >
       <header className="mb-4">
         <h2 id="review-hub-title" className="font-display text-lg font-semibold">
