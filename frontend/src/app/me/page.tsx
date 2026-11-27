@@ -1,6 +1,6 @@
 import { MyCardScreen } from "@/components/learner-card";
 
-export const metadata = { title: "My learner card — Kalpavriksha" };
+export const metadata = { title: "My profile — Kalpavriksha" };
 
 export default function MyCardPage() {
   return <MyCardScreen />;
