@@ -2,6 +2,8 @@
 
 import { ArrowLeft, ArrowRight, BookOpen, Flame, Lock, SignOut, Star, Target } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useRef, type MouseEvent } from "react";
 import { signOutAction } from "@/app/sign-in/actions";
 import { LangSelect } from "@/components/landing/lang-select";
 import { useHydrated } from "@/components/learner-setup";
@@ -39,6 +41,10 @@ const COPY = {
     account: "Account",
     username: "Username",
     signOut: "Sign out",
+    back: "Back",
+    confirmTitle: "Sign out?",
+    confirmBody: "Your progress is saved. You'll need your username and password to sign in again.",
+    cancel: "Stay signed in",
     loading: "Loading your profile…",
     error: "Couldn't load your profile.",
     retry: "Try again",
@@ -65,6 +71,10 @@ const COPY = {
     account: "கணக்கு",
     username: "பயனர் பெயர்",
     signOut: "வெளியேறு",
+    back: "பின்செல்",
+    confirmTitle: "வெளியேறவா?",
+    confirmBody: "உன் முன்னேற்றம் சேமிக்கப்பட்டுள்ளது. மீண்டும் உள்நுழைய உன் பயனர் பெயரும் கடவுச்சொல்லும் தேவை.",
+    cancel: "உள்நுழைந்தே இரு",
     loading: "உன் சுயவிவரம் ஏற்றப்படுகிறது…",
     error: "சுயவிவரத்தை ஏற்ற முடியவில்லை.",
     retry: "மீண்டும் முயல்",
@@ -91,6 +101,55 @@ function Stat({ icon: Icon, label, value, note }: { icon: typeof Star; label: st
       <p className="mt-1.5 text-sm text-muted">{label}</p>
       {note && <p className="mt-1 text-xs text-muted">{note}</p>}
     </div>
+  );
+}
+
+/** Sign out, after a confirm dialog (native <dialog>: Escape and the backdrop close it, focus stays inside). */
+function SignOutButton({ c }: { c: Copy }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const close = () => dialog.current?.close();
+  return (
+    <>
+      <button type="button" onClick={() => dialog.current?.showModal()} className={`mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-line-strong px-4 text-[15px] font-semibold transition-colors duration-150 hover:bg-surface-2 ${FOCUS}`}>
+        <SignOut size={18} aria-hidden /> {c.signOut}
+      </button>
+      <dialog
+        ref={dialog}
+        aria-labelledby="signout-title"
+        onClick={(e) => e.target === e.currentTarget && close()}
+        className="fixed inset-0 m-auto h-fit w-[calc(100%_-_2rem)] max-w-md rounded-2xl border border-line bg-surface p-6 text-text shadow-[0_24px_60px_-20px_rgb(24_18_43/0.45)] backdrop:bg-[rgb(24_18_43/0.5)]"
+      >
+        <h2 id="signout-title" className="font-headline text-xl font-semibold">{c.confirmTitle}</h2>
+        <p className="mt-2 text-[15px] leading-relaxed text-muted">{c.confirmBody}</p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button type="button" autoFocus onClick={close} className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-line-strong px-4 text-[15px] font-semibold transition-colors duration-150 hover:bg-surface-2 ${FOCUS}`}>
+            {c.cancel}
+          </button>
+          <form action={signOutAction}>
+            <button type="submit" className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-danger px-4 text-[15px] font-semibold text-white transition-opacity dark:text-[#120e1f] duration-150 hover:opacity-90 ${FOCUS}`}>
+              <SignOut size={18} aria-hidden /> {c.signOut}
+            </button>
+          </form>
+        </div>
+      </dialog>
+    </>
+  );
+}
+
+/** Back to the previous page when it was in this app; otherwise to the student's lessons (never the landing page). */
+function BackLink({ c }: { c: Copy }) {
+  const router = useRouter();
+  const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    const fromHere = document.referrer && new URL(document.referrer).origin === location.origin && !/^\/(sign-in)?$/.test(new URL(document.referrer).pathname);
+    if (fromHere && history.length > 1) {
+      e.preventDefault();
+      router.back();
+    }
+  };
+  return (
+    <Link href="/m/learn" onClick={onClick} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-[15px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text ${FOCUS}`}>
+      <ArrowLeft size={18} aria-hidden /> {c.back}
+    </Link>
   );
 }
 
@@ -153,11 +212,7 @@ function Profile({ user, progress, c, locale }: { user: ClientUser; progress: Pr
               <dd className="truncate font-medium">{user.username}</dd>
             </div>
           </dl>
-          <form action={signOutAction} className="mt-4">
-            <button type="submit" className={`inline-flex min-h-11 items-center gap-2 rounded-xl border border-line-strong px-4 text-[15px] font-semibold transition-colors duration-150 hover:bg-surface-2 ${FOCUS}`}>
-              <SignOut size={18} aria-hidden /> {c.signOut}
-            </button>
-          </form>
+          <SignOutButton c={c} />
         </section>
       </div>
 
@@ -234,9 +289,7 @@ export function MyCardScreen() {
     <div className="min-h-[100dvh] bg-bg text-text">
       <header className="sticky top-0 z-40 border-b border-line bg-bg/95">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
-          <Link href="/m/learn" className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-[15px] font-medium text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text ${FOCUS}`}>
-            <ArrowLeft size={18} aria-hidden /> {c.home}
-          </Link>
+          <BackLink c={c} />
           <div className="flex items-center gap-2">
             <LangSelect />
             <ThemeToggle />
