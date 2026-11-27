@@ -100,15 +100,15 @@ export async function getExplanation(db: Database, chapterId: string, medium: Me
 }
 
 /**
- * What a reader sees: the published explanation in their medium, else the other
- * medium's. Staff (`drafts`) also see drafts so they can review them in place.
+ * What a reader sees: the saved explanation in their medium, else the other
+ * medium's. No approval step: drafts are shown to students too.
  */
-export async function explanationFor(db: Database, chapterId: string, medium: Medium, drafts = false) {
+export async function explanationFor(db: Database, chapterId: string, medium: Medium) {
   const own = subjectLanguage(chapterId);
   const order: Medium[] = own ? [own] : [medium, medium === "en" ? "ta" : "en"];
   for (const m of order) {
     const row = await getExplanation(db, chapterId, m);
-    if (row && (row.status === "published" || drafts)) return { medium: m, status: row.status, data: row.data };
+    if (row) return { medium: m, status: row.status, data: row.data };
   }
   return null;
 }

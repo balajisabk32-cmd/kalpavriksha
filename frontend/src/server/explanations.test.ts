@@ -63,10 +63,9 @@ describe("saving and publishing", () => {
     await db.execute(sql`truncate chapter_explanations`);
   });
 
-  it("keeps drafts from students until published, and falls back to the other medium", async () => {
+  it("shows saved explanations without approval, and falls back to the other medium", async () => {
     await saveExplanation(db, { chapterId: "c4-science-ch1", medium: "en", raw: JSON.stringify(SAMPLE), userId: null });
-    expect(await explanationFor(db, "c4-science-ch1", "ta")).toBeNull();
-    expect((await explanationFor(db, "c4-science-ch1", "ta", true))?.status).toBe("draft");
+    expect((await explanationFor(db, "c4-science-ch1", "ta"))?.status).toBe("draft");
 
     await setExplanationStatus(db, "c4-science-ch1", "en", "published");
     const seen = await explanationFor(db, "c4-science-ch1", "ta");
@@ -78,7 +77,7 @@ describe("saving and publishing", () => {
   it("replaces an explanation and refuses a broken one", async () => {
     await saveExplanation(db, { chapterId: "c4-science-ch1", medium: "en", raw: JSON.stringify(SAMPLE), publish: true, userId: null });
     await saveExplanation(db, { chapterId: "c4-science-ch1", medium: "en", raw: JSON.stringify({ ...SAMPLE, summary: "New" }), userId: null });
-    const row = await explanationFor(db, "c4-science-ch1", "en", true);
+    const row = await explanationFor(db, "c4-science-ch1", "en");
     expect(row?.data.summary).toBe("New");
     expect(row?.status).toBe("draft");
     await expect(saveExplanation(db, { chapterId: "c4-science-ch1", medium: "en", raw: "{}", userId: null })).rejects.toBeInstanceOf(ExplanationError);

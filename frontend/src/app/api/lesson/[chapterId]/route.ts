@@ -23,8 +23,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/lesson/[chap
   const db = await getDb();
   const media = await chapterMedia(db, chapterId, medium);
   const book = media.textbook ? await getTextbook(db, media.textbook.id) : null;
-  // Staff see drafts so they can check them in place before publishing.
-  const explanation = await explanationFor(db, chapterId, medium, user.role !== "student");
+  const explanation = await explanationFor(db, chapterId, medium);
   const watched = await watchedFor(db, user.id, [...media.videos, ...media.subjectVideos].map((v) => v.id));
 
   return Response.json(

@@ -188,7 +188,6 @@ export function LessonMedia({ chapterId }: { chapterId: string }) {
     <ExplanationView
       data={data.explanation.data}
       lang={data.explanation.medium}
-      draft={data.explanation.status === "draft"}
       fallbackFrom={data.explanation.medium !== data.medium ? data.medium : undefined}
     />
   );
